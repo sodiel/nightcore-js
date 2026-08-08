@@ -1,0 +1,22 @@
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap');
+@import "tailwindcss";
+
+@theme {
+    --font-display: "Google Sans", sans-serif;
+}
+* {
+    font-optical-sizing: auto;
+    font-weight: <weight>;
+    font-style: normal;
+    font-variation-settings:
+            "GRAD" 0;
+}
+
+/*.google-sans-<uniquifier> {*/
+/*                  font-family: "Google Sans", sans-serif;*/
+/*                  font-optical-sizing: auto;*/
+/*                  font-weight: <weight>;*/
+/*                  font-style: normal;*/
+/*                  font-variation-settings:*/
+/*                          "GRAD" 0;*/
+/*              }*/

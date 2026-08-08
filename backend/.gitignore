@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.log
+
+
+# yt-dlp binary
+yt-dlp
+# Downloaded tracks
+tracks/
