@@ -8,7 +8,6 @@ function App() {
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const timeRef = useRef<HTMLParagraphElement | null>(null);
 
   const playIcon = (
     <svg
@@ -75,7 +74,7 @@ function App() {
       setNightcore(track);
       setIsLoading(false);
     } catch (error) {
-      console.error(error.message);
+      if (error instanceof Error) console.error(error.message);
     }
   }
 
