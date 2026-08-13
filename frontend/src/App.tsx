@@ -28,15 +28,6 @@ function App() {
     }
   }, [isPlaying]);
 
-  useEffect(() => {
-    const audio = audioRef.current;
-    console.log(audio);
-    if (!audio) return;
-
-    setDuration(audio.duration);
-    console.log("duration set");
-  }, [nightcore]);
-
   async function handleGetNightcore(trackQuery: string) {
     try {
       setIsLoading(true);
@@ -96,6 +87,9 @@ function App() {
             <audio
               src={nightcore}
               ref={audioRef}
+              onLoadedMetadata={(e) => {
+                setDuration(e.currentTarget.duration);
+              }}
               onEnded={() => {
                 setIsPlaying(false);
                 setCurrentTime(0);
