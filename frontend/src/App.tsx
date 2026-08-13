@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { playIcon, pauseIcon } from "./config/icons.tsx";
+import { getNightcore } from "./services.ts";
+import Player from "./components/ui/Player.tsx";
 
 function App() {
   const [trackQuery, setTrackQuery] = useState("");
@@ -9,40 +12,9 @@ function App() {
   const [currentTime, setCurrentTime] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const playIcon = (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className="size-6"
-    >
-      <path
-        fillRule="evenodd"
-        d="M4.5 5.653c0-1.427 1.529-2.33 2.779-1.643l11.54 6.347c1.295.712 1.295 2.573 0 3.286L7.28 19.99c-1.25.687-2.779-.217-2.779-1.643V5.653Z"
-        clipRule="evenodd"
-      />
-    </svg>
-  );
-
-  const pauseIcon = (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className="size-6"
-    >
-      <path
-        fillRule="evenodd"
-        d="M6.75 5.25a.75.75 0 0 1 .75-.75H9a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75H7.5a.75.75 0 0 1-.75-.75V5.25Zm7.5 0A.75.75 0 0 1 15 4.5h1.5a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75H15a.75.75 0 0 1-.75-.75V5.25Z"
-        clipRule="evenodd"
-      />
-    </svg>
-  );
-
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    setDuration(audio.duration);
 
     if (isPlaying) {
       audio.play().catch((error) => {
@@ -54,27 +26,27 @@ function App() {
     if (audio.ended) {
       setIsPlaying(false);
     }
-  }, [isPlaying, nightcore]);
+  }, [isPlaying]);
 
-  async function getNightcore(trackQuery: string) {
-    const url = "http://localhost:3001";
+  useEffect(() => {
+    const audio = audioRef.current;
+    console.log(audio);
+    if (!audio) return;
+
+    setDuration(audio.duration);
+    console.log("duration set");
+  }, [nightcore]);
+
+  async function handleGetNightcore(trackQuery: string) {
     try {
       setIsLoading(true);
-      const response = await fetch(url, {
-        method: "POST",
-        body: JSON.stringify({ trackQuery }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`Response: ${response.status}`);
-      }
-      const track = await response.text();
+      const track = await getNightcore(trackQuery);
       setNightcore(track);
-      setIsLoading(false);
+      console.log("track set");
     } catch (error) {
       if (error instanceof Error) console.error(error.message);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -113,7 +85,7 @@ function App() {
             }
             onClick={(e) => {
               e.preventDefault();
-              getNightcore(trackQuery);
+              handleGetNightcore(trackQuery);
             }}
           >
             Nightcore
@@ -131,22 +103,12 @@ function App() {
               onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
             />
           )}
-          <div
-            className={
-              "w-full focus:outline-none border rounded-md rounded-bl-2xl text-nowrap p-2 mr-1"
-            }
-          >
-            {audioRef.current && (
-              <input
-                className={"w-full accent-purple-500"}
-                type={"range"}
-                min={"0"}
-                max={duration || 0}
-                value={currentTime}
-                onChange={handleSeek}
-              />
-            )}
-          </div>
+          <Player
+            duration={duration}
+            currentTime={currentTime}
+            handleSeek={handleSeek}
+            audioRef={audioRef}
+          />
           <button
             className={
               "border p-2 rounded-md rounded-br-2xl bg-white/20 active:bg-purple-500"
