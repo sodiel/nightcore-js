@@ -10,6 +10,8 @@ function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [isError, setIsError] = useState(false);
+  const [artwork, setArtwork] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -31,9 +33,15 @@ function App() {
   async function handleGetNightcore(trackQuery: string) {
     try {
       setIsLoading(true);
-      const track = await getNightcore(trackQuery);
-      setNightcore(track);
-      console.log("track set");
+      const response = await getNightcore(trackQuery);
+      if (response?.success) {
+        setNightcore(response?.nightcoreUrl);
+        const artworkUrl = response?.metadata?.artworkUrl;
+        if (artworkUrl) setArtwork(artworkUrl);
+      } else {
+        setIsError(true);
+        throw new Error("Server Error");
+      }
     } catch (error) {
       if (error instanceof Error) console.error(error.message);
     } finally {
@@ -60,6 +68,9 @@ function App() {
         {isLoading && (
           <p className={"text-black/10 dark:text-white/50"}>Loading...</p>
         )}
+        {isError && <p>Server Error</p>}
+        <img src={artwork} alt="artwork" className="text-[0px]" />
+
         <form className={"flex flex-row w-full"}>
           <input
             className={
@@ -112,7 +123,6 @@ function App() {
             {isPlaying ? pauseIcon : playIcon}
           </button>
         </div>
-        {/*<a href={nightcore ?? undefined}> Download audio </a>*/}
       </div>
     </section>
   );
