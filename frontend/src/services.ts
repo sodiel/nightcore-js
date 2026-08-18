@@ -1,7 +1,6 @@
 export async function getNightcore(trackQuery: string) {
-  const url = "http://localhost:3001";
+  const url = "http://localhost:3001/process";
   try {
-
     const response = await fetch(url, {
       method: "POST",
       body: JSON.stringify({ trackQuery }),
@@ -12,7 +11,7 @@ export async function getNightcore(trackQuery: string) {
     if (!response.ok) {
       throw new Error(`Response: ${response.status}`);
     }
-    return await response.text();
+    return await response.json();
   } catch (error) {
     if (error instanceof Error) console.error(error.message);
   }
