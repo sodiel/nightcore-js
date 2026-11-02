@@ -3,6 +3,7 @@ import { playIcon, pauseIcon } from "./config/icons.tsx";
 import { getNightcore } from "./services.ts";
 import Player from "./components/ui/Player.tsx";
 import artworkPlaceholder from "./assets/artworkPlaceholder.png";
+import Tilt from "react-parallax-tilt";
 
 function App() {
   const [trackQuery, setTrackQuery] = useState("");
@@ -17,7 +18,6 @@ function App() {
   const [artist, setArtist] = useState("");
   const [originalUrl, setOriginalUrl] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -75,9 +75,9 @@ function App() {
         "h-screen flex flex-col justify-center items-center bg-purple-100 dark:bg-purple-950 text-black dark:text-white font-roboto font-display"
       }
     >
-      <div className="flex flex-col justify-center items-center bg-purple-100 dark:bg-purple-950 dark:text-white p-8 rounded-4xl border dark:border-white gap-1">
+      <div className="flex flex-col justify-center items-center bg-purple-100 dark:bg-purple-950 dark:text-white p-8 m-8 rounded-4xl border dark:border-white gap-1">
         {isLoading && (
-          <p className={"text-black/10 dark:text-white/50"}>Loading...</p>
+          <p className="text-black/10 dark:text-white/50">Loading...</p>
         )}
         {isError && <p>Server Error</p>}
 
@@ -100,19 +100,32 @@ function App() {
               handleGetNightcore(trackQuery);
             }}
           >
-            Nightcore
+            Nightcore {isLoading ?? "loading"}
           </button>
         </form>
-        <div className={"flex flex-row justify-center w-full"}>
-          <img
-            src={artwork ?? artworkPlaceholder}
-            alt="artwork"
-            className="rounded-2xl text-[0px] max-w-1/2"
-          />
-          <p>{title}</p>
-          <p>{artist}</p>
 
+        <div className="flex flex-col md:flex-row justify-center w-full items-center space-x-4">
+          <Tilt
+            tiltMaxAngleX={10}
+            tiltMaxAngleY={10}
+            perspective={1000}
+            gyroscope={true}
+          >
+            <div className="select-none py-4 ">
+              <img
+                src={artwork ?? artworkPlaceholder}
+                alt="artwork"
+                className="rounded-2xl text-[0px]  md:w-3xs w-screen select-none"
+              />
+            </div>
+          </Tilt>
+          <div className="flex flex-col justify-center items-center">
+            <p className="font-bold text-lg">{title}</p>
+            <hr className="w-full border-dashed" />
+            <p>{artist}</p>
+          </div>
         </div>
+
         <div className={"flex flex-row justify-center w-full"}>
           {nightcore && (
             <audio
