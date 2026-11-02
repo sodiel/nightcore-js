@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { playIcon, pauseIcon } from "./config/icons.tsx";
 import { getNightcore } from "./services.ts";
 import Player from "./components/ui/Player.tsx";
+import artworkPlaceholder from "./assets/artworkPlaceholder.png";
 
 function App() {
   const [trackQuery, setTrackQuery] = useState("");
@@ -11,8 +12,12 @@ function App() {
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [isError, setIsError] = useState(false);
-  const [artwork, setArtwork] = useState("");
+  const [artwork, setArtwork] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
+  const [artist, setArtist] = useState("");
+  const [originalUrl, setOriginalUrl] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -38,6 +43,12 @@ function App() {
         setNightcore(response?.nightcoreUrl);
         const artworkUrl = response?.metadata?.artworkUrl;
         if (artworkUrl) setArtwork(artworkUrl);
+        const title = response?.metadata?.title;
+        if (title) setTitle(title);
+        const artist = response?.metadata?.artist;
+        if (artist) setArtist(artist);
+        const originalUrl = response.originalUrl;
+        if (originalUrl) setOriginalUrl(originalUrl);
       } else {
         setIsError(true);
         throw new Error("Server Error");
@@ -69,7 +80,6 @@ function App() {
           <p className={"text-black/10 dark:text-white/50"}>Loading...</p>
         )}
         {isError && <p>Server Error</p>}
-        <img src={artwork} alt="artwork" className="text-[0px]" />
 
         <form className={"flex flex-row w-full"}>
           <input
@@ -93,6 +103,16 @@ function App() {
             Nightcore
           </button>
         </form>
+        <div className={"flex flex-row justify-center w-full"}>
+          <img
+            src={artwork ?? artworkPlaceholder}
+            alt="artwork"
+            className="rounded-2xl text-[0px] max-w-1/2"
+          />
+          <p>{title}</p>
+          <p>{artist}</p>
+
+        </div>
         <div className={"flex flex-row justify-center w-full"}>
           {nightcore && (
             <audio
