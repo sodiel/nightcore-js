@@ -16,6 +16,9 @@ You need to download [yt-dlp](https://github.com/yt-dlp/yt-dlp/releases) into ba
 
 `cd ../backend && npm install && npm run dev`
 
+To use YouTube cookies, set `YT_DLP_COOKIES_PATH` in `backend/.env` to the
+absolute path of a Netscape-format cookies file. See `backend/.env.example`.
+The backend requires Node.js 20.12 or later to load this file.
 
 
 

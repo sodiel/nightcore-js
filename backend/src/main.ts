@@ -6,6 +6,10 @@ import crypto from "crypto";
 import { execFile } from "child_process";
 import { promisify } from "util";
 
+if (fs.existsSync(".env")) {
+  process.loadEnvFile(".env");
+}
+
 const execFileAsync = promisify(execFile);
 
 const app: Express = express();
@@ -120,6 +124,9 @@ app.post("/process", async (req: Request, res: Response) => {
     "--no-warnings",
     "--no-playlist",
   ];
+  if (process.env.YT_DLP_COOKIES_PATH) {
+    ytdlpArgs.push("--cookies", process.env.YT_DLP_COOKIES_PATH);
+  }
 
   try {
     // Execute yt-dlp
@@ -149,11 +156,6 @@ app.post("/process", async (req: Request, res: Response) => {
     const ffmpegArgs = [
       "-i",
       originalFilePath,
-      "-filter:a",
-      "asetrate=44100*1.15,aresample=44100,atempo=1.0", // Classic nightcore pitch/speed
-      "-b:a",
-      "192k", // Good balance of size and quality
-      "-y", // Overwrite output file if it exists
     ];
 
     // 6. If we have artwork, download it and tell ffmpeg to embed it
@@ -169,8 +171,15 @@ app.post("/process", async (req: Request, res: Response) => {
       }
     }
 
-    // Add output path to ffmpeg arguments
-    ffmpegArgs.push(nightcoreFilePath);
+    // Output options must follow all inputs.
+    ffmpegArgs.push(
+      "-filter:a",
+      "asetrate=44100*1.15,aresample=44100,atempo=1.0",
+      "-b:a",
+      "192k",
+      "-y",
+      nightcoreFilePath,
+    );
 
     // Execute ffmpeg
     const ffmpegResult = await execFileAsync("ffmpeg", ffmpegArgs);
