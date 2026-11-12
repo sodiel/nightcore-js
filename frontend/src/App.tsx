@@ -12,7 +12,7 @@ function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [isError, setIsError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [artwork, setArtwork] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
@@ -38,24 +38,20 @@ function App() {
   async function handleGetNightcore(trackQuery: string) {
     try {
       setIsLoading(true);
-      setIsError(false);
+      setErrorMessage("");
       const response = await getNightcore(trackQuery);
       if (response?.success) {
-        setNightcore(response?.nightcoreUrl);
-        const artworkUrl = response?.metadata?.artworkUrl;
-        if (artworkUrl) setArtwork(artworkUrl);
-        const title = response?.metadata?.title;
-        if (title) setTitle(title);
-        const artist = response?.metadata?.artist;
-        if (artist) setArtist(artist);
-        const originalUrl = response.originalUrl;
-        if (originalUrl) setOriginalUrl(originalUrl);
+        setNightcore(response.nightcoreUrl);
+        setArtwork(response.metadata?.artworkUrl ?? null);
+        setTitle(response.metadata?.title ?? "");
+        setArtist(response.metadata?.artist ?? "");
+        setOriginalUrl(response.originalUrl ?? "");
+        setIsPlaying(false);
       } else {
-        setIsError(true);
         throw new Error("Server Error");
       }
     } catch (error) {
-      setIsError(true);
+      setErrorMessage(error instanceof Error ? error.message : "Server Error");
       if (error instanceof Error) console.error(error.message);
     } finally {
       setIsLoading(false);
@@ -78,11 +74,14 @@ function App() {
       }
     >
       <div className="flex flex-col justify-center items-center bg-purple-100 dark:bg-purple-950 dark:text-white p-8 m-8 rounded-4xl border dark:border-white gap-1">
+        {/* status indicator */}
         {isLoading && (
           <p className="text-black/10 dark:text-white/50">Loading...</p>
         )}
-        {isError && <p>Server Error</p>}
+        {errorMessage && <p>{errorMessage}</p>}
+        {/* status indicator */}
 
+        {/* search form */}
         <form className={"flex flex-row w-full"}>
           <input
             className={
@@ -105,7 +104,9 @@ function App() {
             Nightcore {isLoading ?? "loading"}
           </button>
         </form>
+        {/* search form */}
 
+        {/* track details */}
         <div className="flex flex-col md:flex-row justify-center w-full items-center space-x-4">
           <Tilt
             tiltMaxAngleX={10}
@@ -127,7 +128,9 @@ function App() {
             <p>{artist}</p>
           </div>
         </div>
+        {/* track details */}
 
+        {/* player */}
         <div className={"flex flex-row justify-center w-full"}>
           {nightcore && (
             <audio
@@ -159,6 +162,7 @@ function App() {
           </button>
         </div>
       </div>
+      {/* player */}
     </section>
   );
 }
