@@ -12,6 +12,13 @@ if (fs.existsSync(".env")) {
 
 const execFileAsync = promisify(execFile);
 
+const cookiesPath = process.env.YT_DLP_COOKIES_PATH?.trim();
+const cookiesBrowser = process.env.YT_DLP_COOKIES_FROM_BROWSER?.trim();
+const userAgent = process.env.YT_DLP_USER_AGENT?.trim();
+if (cookiesPath && cookiesBrowser) {
+  throw new Error("Set only one of YT_DLP_COOKIES_PATH and YT_DLP_COOKIES_FROM_BROWSER");
+}
+
 const app: Express = express();
 const port = 3001;
 
@@ -124,15 +131,32 @@ app.post("/process", async (req: Request, res: Response) => {
     "--no-warnings",
     "--no-playlist",
   ];
-  if (process.env.YT_DLP_COOKIES_PATH) {
-    ytdlpArgs.push("--cookies", process.env.YT_DLP_COOKIES_PATH);
+  if (cookiesPath) {
+    ytdlpArgs.push("--cookies", cookiesPath);
+  } else if (cookiesBrowser) {
+    ytdlpArgs.push("--cookies-from-browser", cookiesBrowser);
+  }
+  if (userAgent) {
+    ytdlpArgs.push("--user-agent", userAgent);
   }
 
   try {
     // Execute yt-dlp
-    const { stdout, stderr } = await execFileAsync("./yt-dlp", ytdlpArgs, {
-      maxBuffer: 1024 * 1024 * 10,
-    });
+    let download;
+    try {
+      download = await execFileAsync("./yt-dlp", ytdlpArgs, {
+        maxBuffer: 1024 * 1024 * 10,
+      });
+    } catch (error: any) {
+      if (/HTTP Error 403\b/i.test(String(error.stderr ?? error.message))) {
+        return res.status(502).json({
+          error: "The source returned HTTP 403. Check browser cookies and user-agent, complete any browser challenge, and use the same network as the backend.",
+          code: "SOURCE_HTTP_403",
+        });
+      }
+      throw error;
+    }
+    const { stdout, stderr } = download;
 
     console.log("--- yt-dlp stdout ---:\n", stdout);
     if (stderr) console.log("--- yt-dlp stderr ---:\n", stderr);

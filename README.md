@@ -16,9 +16,23 @@ You need to download [yt-dlp](https://github.com/yt-dlp/yt-dlp/releases) into ba
 
 `cd ../backend && npm install && npm run dev`
 
-To use YouTube cookies, set `YT_DLP_COOKIES_PATH` in `backend/.env` to the
-absolute path of a Netscape-format cookies file. See `backend/.env.example`.
-The backend requires Node.js 20.12 or later to load this file.
+To use cookies, copy `backend/.env.example` to `backend/.env` and choose one:
+
+- Set `YT_DLP_COOKIES_FROM_BROWSER` to a yt-dlp browser specification, for
+  example `firefox:/home/user/.floorp/profile-name` for a Floorp profile.
+  Use the absolute path to the actual profile directory, not `~`.
+- Or set `YT_DLP_COOKIES_PATH` to the absolute path of a Netscape-format
+  cookies file. yt-dlp may update this file.
+
+Restart the backend after changing the configuration. The backend process must
+be able to read the browser profile, and browser database locks or encryption
+may prevent extraction. Protect cookies files: they contain login credentials.
+See `backend/.env.example`. Node.js 20.12 or later is required to load it.
+
+For an HTTP 403 challenge, open the site in the browser and complete its
+challenge, then use that browser's cookies and set `YT_DLP_USER_AGENT` to its
+exact User-Agent. The browser and backend may also need the same public IP.
+These steps do not resolve every 403. See the [yt-dlp FAQ](https://github.com/yt-dlp/yt-dlp/wiki/FAQ).
 
 
 
