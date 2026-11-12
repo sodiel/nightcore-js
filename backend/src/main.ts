@@ -114,7 +114,7 @@ app.post("/process", async (req: Request, res: Response) => {
 
   // 3. Prepare yt-dlp arguments (Array format prevents Command Injection)
   const ytdlpArgs = [
-    `ytsearch:${trackQuery}`,
+    /^https?:\/\//i.test(trackQuery.trim()) ? trackQuery.trim() : `ytsearch:${trackQuery}`,
     "-x",
     "--audio-format",
     "mp3",
