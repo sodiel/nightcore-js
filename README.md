@@ -25,6 +25,4 @@ The backend requires Node.js 20.12 or later to load this file.
 
 TODO:
 - [ ] add crossplatform post-install script 
-- [ ] add nightcorization itself
-- [x] replace default html audio with custom player
 - [ ] add uploading track from file
