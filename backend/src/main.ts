@@ -32,6 +32,55 @@ if (!fs.existsSync(tracksDir)) {
   fs.mkdirSync(tracksDir, { recursive: true });
 }
 
+type Metadata = { artist: string; title: string; artworkUrl: string };
+let nextMusicBrainzRequest = 0;
+
+async function musicBrainz(query: string): Promise<Metadata | null> {
+  try {
+    const now = Date.now();
+    const slot = Math.max(now, nextMusicBrainzRequest);
+    nextMusicBrainzRequest = slot + 1100;
+    await new Promise((resolve) => setTimeout(resolve, slot - now));
+    const params = new URLSearchParams({ query, fmt: "json", limit: "1", dismax: "true" });
+    const response = await fetch(`https://musicbrainz.org/ws/2/recording?${params}`, {
+      headers: { "User-Agent": "nightcore-js/1.0 (https://github.com/sodiel/nightcore-js)" },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) return null;
+    const data = await response.json() as any;
+    const recording = data.recordings?.[0];
+    if (!recording?.title) return null;
+    const releaseId = recording.releases?.[0]?.id;
+    return {
+      title: recording.title,
+      artist: recording["artist-credit"]?.map((credit: any) => `${credit.name ?? credit.artist?.name ?? ""}${credit.joinphrase ?? ""}`).join("") ?? "",
+      artworkUrl: releaseId ? `https://coverartarchive.org/release/${encodeURIComponent(releaseId)}/front-500` : "",
+    };
+  } catch (error) {
+    console.error("MusicBrainz metadata error:", error);
+    return null;
+  }
+}
+
+function sourceMetadata(info: any): Metadata | null {
+  if (!info || typeof info !== "object") return null;
+  const title = info.track || info.title;
+  if (typeof title !== "string" || !title.trim()) return null;
+  return {
+    title,
+    artist: typeof (info.artist || info.creator || info.uploader) === "string" ? (info.artist || info.creator || info.uploader) : "",
+    artworkUrl: typeof info.thumbnail === "string" ? info.thumbnail : "",
+  };
+}
+
+async function resolveMetadata(info: any, query: string): Promise<Metadata | null> {
+  const source = sourceMetadata(info);
+  if (source) return source;
+  // A URL is not a useful search term for catalog APIs.
+  if (/^https?:\/\//i.test(query)) return null;
+  return await fetchTrackMetadata(query) ?? await musicBrainz(query);
+}
+
 /**
  * Fetches track metadata (artist, title, artwork) from iTunes API
  */
@@ -43,7 +92,7 @@ async function fetchTrackMetadata(query: string) {
       .trim();
     const url = `https://itunes.apple.com/search?term=${encodeURIComponent(cleanQuery)}&entity=song&limit=1`;
 
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
     if (!response.ok) return null;
 
     const data = (await response.json()) as any;
@@ -53,7 +102,7 @@ async function fetchTrackMetadata(query: string) {
         artist: track.artistName,
         title: track.trackName,
         // Request a higher resolution artwork (600x600 instead of 100x100)
-        artworkUrl: track.artworkUrl100.replace("100x100", "600x600"),
+        artworkUrl: track.artworkUrl100?.replace("100x100", "600x600") ?? "",
       };
     }
   } catch (error) {
@@ -95,11 +144,27 @@ app.post("/process", async (req: Request, res: Response) => {
   const originalFilePath = path.join(tracksDir, `${queryHash}.mp3`);
   const nightcoreFilePath = path.join(tracksDir, `${queryHash}_nightcore.mp3`);
   const coverFilePath = path.join(tracksDir, `${queryHash}_cover.jpg`);
+  const metadataPath = path.join(tracksDir, `${queryHash}_metadata.json`);
+  const input = /^https?:\/\//i.test(trackQuery.trim()) ? trackQuery.trim() : `ytsearch:${trackQuery}`;
+  const authArgs = cookiesPath ? ["--cookies", cookiesPath] : cookiesBrowser ? ["--cookies-from-browser", cookiesBrowser] : [];
+  if (userAgent) authArgs.push("--user-agent", userAgent);
 
   // 2. Check cache. If nightcore version exists, return immediately.
   if (fs.existsSync(nightcoreFilePath)) {
     console.log(`Cache hit for: ${trackQuery}`);
-    const metadata = await fetchTrackMetadata(trackQuery);
+    let metadata: Metadata | null = null;
+    try {
+      metadata = JSON.parse(await fs.promises.readFile(metadataPath, "utf8"));
+    } catch {
+      try {
+        const result = await execFileAsync("./yt-dlp", ["--skip-download", "--no-playlist", "--print", "%()j", ...authArgs, "--", input], { maxBuffer: 10 * 1024 * 1024 });
+        metadata = await resolveMetadata(JSON.parse(result.stdout.trim()), trackQuery);
+      } catch (error) {
+        console.error("Cached track metadata lookup error:", error);
+        metadata = await resolveMetadata(null, trackQuery);
+      }
+      if (metadata) await fs.promises.writeFile(metadataPath, JSON.stringify(metadata)).catch(console.error);
+    }
 
     return res.json({
       success: true,
@@ -114,7 +179,7 @@ app.post("/process", async (req: Request, res: Response) => {
 
   // 3. Prepare yt-dlp arguments (Array format prevents Command Injection)
   const ytdlpArgs = [
-    /^https?:\/\//i.test(trackQuery.trim()) ? trackQuery.trim() : `ytsearch:${trackQuery}`,
+    input,
     "-x",
     "--audio-format",
     "mp3",
@@ -127,18 +192,11 @@ app.post("/process", async (req: Request, res: Response) => {
     "--match-filter",
     "duration < 600", // Skip videos longer than 10 minutes
     "--print",
-    "after_move:title", // Get the video title after successful download
+    "after_move:%()j", // Print the extracted metadata as JSON
     "--no-warnings",
     "--no-playlist",
   ];
-  if (cookiesPath) {
-    ytdlpArgs.push("--cookies", cookiesPath);
-  } else if (cookiesBrowser) {
-    ytdlpArgs.push("--cookies-from-browser", cookiesBrowser);
-  }
-  if (userAgent) {
-    ytdlpArgs.push("--user-agent", userAgent);
-  }
+  ytdlpArgs.push(...authArgs);
 
   try {
     // Execute yt-dlp
@@ -158,23 +216,26 @@ app.post("/process", async (req: Request, res: Response) => {
     }
     const { stdout, stderr } = download;
 
-    console.log("--- yt-dlp stdout ---:\n", stdout);
     if (stderr) console.log("--- yt-dlp stderr ---:\n", stderr);
 
-    const youtubeTitle = stdout.trim().split("\n")[0];
+    let sourceInfo: unknown = null;
+    try {
+      sourceInfo = JSON.parse(stdout.trim());
+    } catch {
+      console.error("Could not parse yt-dlp metadata");
+    }
 
     // yt-dlp exits with code 0 even if it skipped the video due to duration filter.
     // So we must check if the file was actually created.
     if (!fs.existsSync(originalFilePath)) {
       return res.status(404).json({
         error: "Track not found, or skipped (e.g. duration > 10 min).",
-        debug_stdout: stdout,
         debug_stderr: stderr,
       });
     }
 
     // 4. Fetch metadata from iTunes
-    const metadata = await fetchTrackMetadata(youtubeTitle || trackQuery);
+    const metadata = await resolveMetadata(sourceInfo, trackQuery);
 
     // 5. Prepare ffmpeg arguments for Nightcore effect
     const ffmpegArgs = [
@@ -208,6 +269,7 @@ app.post("/process", async (req: Request, res: Response) => {
     // Execute ffmpeg
     const ffmpegResult = await execFileAsync("ffmpeg", ffmpegArgs);
     console.log("--- ffmpeg stderr ---:\n", ffmpegResult.stderr);
+    if (metadata) await fs.promises.writeFile(metadataPath, JSON.stringify(metadata)).catch(console.error);
 
     // Clean up the downloaded cover image to save disk space
     if (coverEmbedded && fs.existsSync(coverFilePath)) {
