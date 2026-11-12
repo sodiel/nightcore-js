@@ -38,6 +38,7 @@ function App() {
   async function handleGetNightcore(trackQuery: string) {
     try {
       setIsLoading(true);
+      setIsError(false);
       const response = await getNightcore(trackQuery);
       if (response?.success) {
         setNightcore(response?.nightcoreUrl);
@@ -54,6 +55,7 @@ function App() {
         throw new Error("Server Error");
       }
     } catch (error) {
+      setIsError(true);
       if (error instanceof Error) console.error(error.message);
     } finally {
       setIsLoading(false);
