@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { playIcon, pauseIcon } from "./config/icons.tsx";
 import { getNightcore } from "./services.ts";
-import Player from "./components/ui/Player.tsx";
-import artworkPlaceholder from "./assets/artworkPlaceholder.png";
-import Tilt from "react-parallax-tilt";
+import TrackSearch from "./components/TrackSearch.tsx";
+import TrackDetails from "./components/TrackDetails.tsx";
+import TrackPlayer from "./components/TrackPlayer.tsx";
+import {
+  argbFromHex,
+  themeFromSourceColor,
+  applyTheme,
+  themeFromImage,
+} from "@material/material-color-utilities";
 
 function App() {
   const [trackQuery, setTrackQuery] = useState("");
@@ -16,8 +21,27 @@ function App() {
   const [artwork, setArtwork] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
-  const [originalUrl, setOriginalUrl] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    applyTheme(themeFromSourceColor(argbFromHex("#6750a4")), {
+      target: document.documentElement,
+      brightnessSuffix: true,
+    });
+  }, []);
+
+  const handleTheme = async (img: HTMLImageElement) => {
+    try {
+      const theme = await themeFromImage(img);
+      applyTheme(theme, {
+        target: document.documentElement,
+        brightnessSuffix: true,
+      });
+    } catch (error) {
+      console.warn("Could not extract artwork colors:", error);
+    }
+  };
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -41,11 +65,12 @@ function App() {
       setErrorMessage("");
       const response = await getNightcore(trackQuery);
       if (response?.success) {
+        setCurrentTime(0);
+        setDuration(0);
         setNightcore(response.nightcoreUrl);
         setArtwork(response.metadata?.artworkUrl ?? null);
         setTitle(response.metadata?.title ?? "");
         setArtist(response.metadata?.artist ?? "");
-        setOriginalUrl(response.originalUrl ?? "");
         setIsPlaying(false);
       } else {
         throw new Error("Server Error");
@@ -68,101 +93,50 @@ function App() {
   };
 
   return (
-    <section
-      className={
-        "h-screen flex flex-col justify-center items-center bg-purple-100 dark:bg-purple-950 text-black dark:text-white font-roboto font-display"
-      }
-    >
-      <div className="flex flex-col justify-center items-center bg-purple-100 dark:bg-purple-950 dark:text-white p-8 m-8 rounded-4xl border dark:border-white gap-1">
-        {/* status indicator */}
+    <section className="h-screen flex flex-col justify-center items-center bg-(--md-sys-color-background-light) dark:bg-(--md-sys-color-background-dark) text-(--md-sys-color-on-background-light) dark:text-(--md-sys-color-on-background-dark) font-roboto font-display">
+      <div className="flex flex-col justify-center items-center bg-(--md-sys-color-surface-light) dark:bg-(--md-sys-color-surface-dark) text-(--md-sys-color-on-surface-light) dark:text-(--md-sys-color-on-surface-dark) p-8 m-8 rounded-4xl border border-(--md-sys-color-outline-light) dark:border-(--md-sys-color-outline-dark) gap-1">
         {isLoading && (
-          <p className="text-black/10 dark:text-white/50">Loading...</p>
+          <p className="text-(--md-sys-color-on-surface-variant-light) dark:text-(--md-sys-color-on-surface-variant-dark)">
+            Loading...
+          </p>
         )}
-        {errorMessage && <p>{errorMessage}</p>}
-        {/* status indicator */}
-
-        {/* search form */}
-        <form className={"flex flex-row w-full"}>
-          <input
-            className={
-              "w-full focus:outline-none border rounded-md rounded-tl-2xl text-nowrap p-2 mr-1"
-            }
-            onChange={(e) => setTrackQuery(e.target.value)}
-            type="text"
-            placeholder="Enter song name or paste URL"
-          />
-          <button
-            type="submit"
-            className={
-              "border p-2 rounded-md rounded-tr-2xl bg-white/20 active:bg-purple-500"
-            }
-            onClick={(e) => {
-              e.preventDefault();
-              handleGetNightcore(trackQuery);
-            }}
+        {errorMessage && (
+          <p
+            role="alert"
+            className="text-(--md-sys-color-error-light) dark:text-(--md-sys-color-error-dark)"
           >
-            Nightcore {isLoading ?? "loading"}
-          </button>
-        </form>
-        {/* search form */}
-
-        {/* track details */}
-        <div className="flex flex-col md:flex-row justify-center w-full items-center space-x-4">
-          <Tilt
-            tiltMaxAngleX={10}
-            tiltMaxAngleY={10}
-            perspective={1000}
-            gyroscope={true}
-          >
-            <div className="select-none py-4 ">
-              <img
-                src={artwork ?? artworkPlaceholder}
-                alt="artwork"
-                className="rounded-2xl text-[0px]  md:w-3xs w-screen select-none"
-              />
-            </div>
-          </Tilt>
-          <div className="flex flex-col justify-center items-center">
-            <p className="font-bold text-lg">{title}</p>
-            <hr className="w-full border-dashed" />
-            <p>{artist}</p>
-          </div>
-        </div>
-        {/* track details */}
-
-        {/* player */}
-        <div className={"flex flex-row justify-center w-full"}>
-          {nightcore && (
-            <audio
-              src={nightcore}
-              ref={audioRef}
-              onLoadedMetadata={(e) => {
-                setDuration(e.currentTarget.duration);
-              }}
-              onEnded={() => {
-                setIsPlaying(false);
-                setCurrentTime(0);
-              }}
-              onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
-            />
-          )}
-          <Player
-            duration={duration}
-            currentTime={currentTime}
-            handleSeek={handleSeek}
-            audioRef={audioRef}
-          />
-          <button
-            className={
-              "border p-2 rounded-md rounded-br-2xl bg-white/20 active:bg-purple-500"
-            }
-            onClick={() => setIsPlaying(!isPlaying)}
-          >
-            {isPlaying ? pauseIcon : playIcon}
-          </button>
-        </div>
+            {errorMessage}
+          </p>
+        )}
+        <TrackSearch
+          query={trackQuery}
+          isLoading={isLoading}
+          onQueryChange={setTrackQuery}
+          onSearch={() => void handleGetNightcore(trackQuery)}
+        />
+        <TrackDetails
+          artwork={artwork}
+          title={title}
+          artist={artist}
+          imageRef={imageRef}
+          handleTheme={handleTheme}
+        />
+        <TrackPlayer
+          nightcore={nightcore}
+          audioRef={audioRef}
+          duration={duration}
+          currentTime={currentTime}
+          isPlaying={isPlaying}
+          onDurationChange={setDuration}
+          onTimeChange={setCurrentTime}
+          onEnded={() => {
+            setIsPlaying(false);
+            setCurrentTime(0);
+          }}
+          onSeek={handleSeek}
+          onTogglePlayback={() => setIsPlaying((playing) => !playing)}
+        />
       </div>
-      {/* player */}
     </section>
   );
 }
