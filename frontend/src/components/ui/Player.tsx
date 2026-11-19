@@ -1,44 +1,37 @@
-import React from "react";
+import type { ChangeEvent } from "react";
 import { formatTime } from "../../utils/formatTime";
 
 type PlayerProps = {
-  audioRef: React.RefObject<HTMLAudioElement> | null;
-  duration: number | null;
+  hasAudio: boolean;
+  duration: number;
   currentTime: number;
-  handleSeek: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleSeek: (event: ChangeEvent<HTMLInputElement>) => void;
 };
 
-const Player: React.FC<PlayerProps> = ({
-  audioRef,
-  duration = 0,
-  currentTime = 0,
+export default function Player({
+  hasAudio,
+  duration,
+  currentTime,
   handleSeek,
-}) => {
-  const hasAudio = Boolean(audioRef && audioRef.current);
-
+}: PlayerProps) {
   return (
-    <div
-      className={
-        "w-full focus:outline-none border rounded-md rounded-bl-2xl text-nowrap p-2 mr-1"
-      }
-    >
+    <div className="w-full focus:outline-none border rounded-md rounded-bl-2xl text-nowrap p-2 mr-1">
       {hasAudio && (
-        <div className={"flex flex-row"}>
+        <div className="flex flex-row">
           <input
-            className={"w-full accent-purple-500"}
+            aria-label="Seek"
+            className="w-full accent-purple-500"
             type="range"
             min={0}
-            max={duration ?? 0}
-            value={currentTime}
+            max={duration}
+            value={Math.min(currentTime, duration)}
             onChange={handleSeek}
           />
           <div className="ml-2 text-sm whitespace-nowrap tabular-nums">
-            {formatTime(currentTime)} / {formatTime(duration ?? 0)}
+            {formatTime(currentTime)} / {formatTime(duration)}
           </div>
         </div>
       )}
     </div>
   );
-};
-
-export default Player;
+}
