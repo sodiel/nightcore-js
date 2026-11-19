@@ -3,6 +3,12 @@ import { getNightcore } from "./services.ts";
 import TrackSearch from "./components/TrackSearch.tsx";
 import TrackDetails from "./components/TrackDetails.tsx";
 import TrackPlayer from "./components/TrackPlayer.tsx";
+import {
+  argbFromHex,
+  themeFromSourceColor,
+  applyTheme,
+  themeFromImage,
+} from "@material/material-color-utilities";
 
 function App() {
   const [trackQuery, setTrackQuery] = useState("");
@@ -16,6 +22,27 @@ function App() {
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    applyTheme(themeFromSourceColor(argbFromHex("#6750a4")), {
+      target: document.documentElement,
+      brightnessSuffix: true,
+    });
+  }, []);
+
+  const handleTheme = async (img: HTMLImageElement) => {
+    try {
+      const theme = await themeFromImage(img);
+      applyTheme(theme, {
+        target: document.documentElement,
+        brightnessSuffix: true,
+      });
+    } catch (error) {
+      console.warn("Could not extract artwork colors:", error);
+    }
+  };
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -66,19 +93,34 @@ function App() {
   };
 
   return (
-    <section className="h-screen flex flex-col justify-center items-center bg-purple-100 dark:bg-purple-950 text-black dark:text-white font-roboto font-display">
-      <div className="flex flex-col justify-center items-center bg-purple-100 dark:bg-purple-950 dark:text-white p-8 m-8 rounded-4xl border dark:border-white gap-1">
+    <section className="h-screen flex flex-col justify-center items-center bg-(--md-sys-color-background-light) dark:bg-(--md-sys-color-background-dark) text-(--md-sys-color-on-background-light) dark:text-(--md-sys-color-on-background-dark) font-roboto font-display">
+      <div className="flex flex-col justify-center items-center bg-(--md-sys-color-surface-light) dark:bg-(--md-sys-color-surface-dark) text-(--md-sys-color-on-surface-light) dark:text-(--md-sys-color-on-surface-dark) p-8 m-8 rounded-4xl border border-(--md-sys-color-outline-light) dark:border-(--md-sys-color-outline-dark) gap-1">
         {isLoading && (
-          <p className="text-black/10 dark:text-white/50">Loading...</p>
+          <p className="text-(--md-sys-color-on-surface-variant-light) dark:text-(--md-sys-color-on-surface-variant-dark)">
+            Loading...
+          </p>
         )}
-        {errorMessage && <p>{errorMessage}</p>}
+        {errorMessage && (
+          <p
+            role="alert"
+            className="text-(--md-sys-color-error-light) dark:text-(--md-sys-color-error-dark)"
+          >
+            {errorMessage}
+          </p>
+        )}
         <TrackSearch
           query={trackQuery}
           isLoading={isLoading}
           onQueryChange={setTrackQuery}
           onSearch={() => void handleGetNightcore(trackQuery)}
         />
-        <TrackDetails artwork={artwork} title={title} artist={artist} />
+        <TrackDetails
+          artwork={artwork}
+          title={title}
+          artist={artist}
+          imageRef={imageRef}
+          handleTheme={handleTheme}
+        />
         <TrackPlayer
           nightcore={nightcore}
           audioRef={audioRef}

@@ -52,7 +52,14 @@ export default function TrackPlayer({
         type="button"
         aria-label={isPlaying ? "Pause" : "Play"}
         disabled={!nightcore}
-        className="border p-2 rounded-md rounded-br-2xl bg-white/20 active:bg-purple-500"
+        className="
+  p-2 rounded-md rounded-br-2xl
+  bg-(--md-sys-color-primary-light)
+  text-(--md-sys-color-on-primary-light)
+  dark:bg-(--md-sys-color-primary-dark)
+  dark:text-(--md-sys-color-on-primary-dark)
+  active:opacity-80
+"
         onClick={onTogglePlayback}
       >
         {isPlaying ? pauseIcon : playIcon}
