@@ -5,9 +5,9 @@ const primaryModes = [
 
 const extraModes = [
   { value: "sped-up", label: "Sped up", icon: "fast", description: "25% faster at the original pitch" },
-  { value: "slowed-reverb", label: "Slowed + reverb", icon: "reverb", description: "15% slower with lower pitch and room reverb" },
-  { value: "bass-boost", label: "Bass boost", icon: "bass", description: "More low end at the original tempo" },
-  { value: "8d-audio", label: "8D audio", icon: "headphones", description: "Slow stereo panning for headphones" },
+  { value: "slowed-reverb", label: "Slowed + reverb", icon: "snail", description: "15% slower with lower pitch and room reverb" },
+  { value: "bass-boost", label: "Bass boost", icon: "subwoofer", description: "More low end at the original tempo" },
+  { value: "8d-audio", label: "8D audio", icon: "spatial_audio", description: "Slow stereo panning for headphones" },
 ] as const;
 
 export const modes = [
