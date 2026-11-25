@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { probeAudio, renderAudio } from "./audio.ts";
 import { config } from "./config.ts";
 import { ApiError } from "./errors.ts";
-import { catalogMetadata, label, sourceMetadata, type Metadata } from "./metadata.ts";
+import { catalogMetadata, sourceMetadata, youtubeRecording, type Metadata, type Recording } from "./metadata.ts";
 import { presets, type Preset } from "./presets.ts";
 import { downloadSource, youtubeInput } from "./youtube.ts";
 
@@ -12,7 +12,7 @@ export interface Source {
   id: string;
   metadata: Metadata | null;
   originalDuration: number;
-  lyricsEligible: boolean;
+  recording?: Recording;
 }
 
 interface Variant {
@@ -86,12 +86,17 @@ export async function acquireTrack(value: unknown) {
         await copyFile(legacyFile, original);
         const metadata = await readFile(join(config.tracksDir, `${legacyHash}_metadata.json`), "utf8")
           .then((json) => JSON.parse(json) as Metadata, () => null).catch(() => null);
-        return { originalDuration: legacyProbe.duration, metadata, lyricsEligible: Boolean(legacyProbe.tags.title && legacyProbe.tags.artist) };
+        const { title, artist } = legacyProbe.tags;
+        return { originalDuration: legacyProbe.duration, metadata, ...(title && artist ? { recording: { title, artist } } : {}) };
       }
       const info = await downloadSource(input, original);
       const { duration } = await probeAudio(original);
-      const metadata = sourceMetadata(info) ?? (isSearch ? await catalogMetadata(query) : null);
-      return { originalDuration: duration, metadata, lyricsEligible: Boolean(label(info.track) && label(info.artist)) };
+      const recording = youtubeRecording(info);
+      const extracted = sourceMetadata(info);
+      const metadata = recording
+        ? { title: recording.title, artist: recording.artist, artworkUrl: extracted?.artworkUrl ?? "" }
+        : extracted ?? (isSearch ? await catalogMetadata(query) : null);
+      return { originalDuration: duration, metadata, ...(recording ? { recording } : {}) };
     });
     return { source, reused: Boolean(legacyProbe) };
   });

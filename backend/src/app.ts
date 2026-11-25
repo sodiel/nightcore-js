@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { config } from "./config.ts";
 import { ApiError } from "./errors.ts";
 import { acquireTrack, getSource, mediaFile, prepareOriginal, prepareVariant, trackResponse, variantFilename } from "./library.ts";
+import { getLyrics } from "./lyrics.ts";
 import { isPreset } from "./presets.ts";
 
 function requestedPreset(value: unknown) {
@@ -32,6 +33,11 @@ export function createApp(): Express {
     const source = await getSource(req.params.id);
     const { variant } = await prepareVariant(source, preset);
     res.json(variant);
+  });
+
+  app.get("/api/tracks/:id/lyrics", async (req, res) => {
+    const source = await getSource(req.params.id);
+    res.json(await getLyrics(source));
   });
 
   app.get("/api/media/:id/:filename", async (req, res) => {

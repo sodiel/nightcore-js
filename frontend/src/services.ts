@@ -45,3 +45,19 @@ export function searchTrack(query: string, preset: Preset, signal: AbortSignal) 
 export function renderVariant(id: string, preset: Preset, signal: AbortSignal) {
   return request<Variant>(`/api/tracks/${encodeURIComponent(id)}/variants`, signal, { preset });
 }
+
+export interface LyricLine {
+  time: number;
+  text: string;
+}
+
+export type Lyrics =
+  | { status: "synced"; lines: LyricLine[] }
+  | { status: "plain"; text: string }
+  | { status: "unavailable" | "instrumental" };
+
+export async function fetchLyrics(id: string, signal: AbortSignal): Promise<Lyrics> {
+  const response = await fetch(`/api/tracks/${encodeURIComponent(id)}/lyrics`, { signal });
+  if (!response.ok) throw new Error("Could not load lyrics. Try again.");
+  return await response.json() as Lyrics;
+}

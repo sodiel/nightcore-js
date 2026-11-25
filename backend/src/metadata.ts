@@ -68,3 +68,23 @@ export async function catalogMetadata(query: string): Promise<Metadata | null> {
     return null;
   }
 }
+
+export type Recording = { title: string; artist: string; album?: string };
+
+export function youtubeRecording(info: Record<string, unknown>): Recording | null {
+  const title = label(info.track);
+  const artist = label(info.artist);
+  const album = label(info.album);
+  if (title && artist) return { title, artist, ...(album ? { album } : {}) };
+
+  const parts = label(info.title).match(/^(.+?)\s+[-–—]\s+(.+)$/);
+  if (!parts?.[1] || !parts[2]) return null;
+  const artistFromTitle = parts[1].trim();
+  const uploader = (label(info.uploader) || label(info.channel)).replace(/\s*-\s*Topic$/i, "");
+  const words = (value: string) => value.normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+  const artistKey = words(artistFromTitle);
+  const uploaderKey = words(uploader).replace(/(?:official|vevo)$/i, "");
+  if (!artistKey || artistKey !== uploaderKey) return null;
+  const song = parts[2].replace(/\s*[([](?:official\s+)?(?:music\s+video|video|audio|lyrics?|lyric video|visuali[sz]er|hd)[)\]]\s*$/i, "").trim();
+  return song ? { title: song, artist: artistFromTitle } : null;
+}

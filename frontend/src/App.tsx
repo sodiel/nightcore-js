@@ -1,3 +1,5 @@
+import { useState } from "react";
+import LyricsPanel from "./components/LyricsPanel.tsx";
 import ModePicker from "./components/ModePicker.tsx";
 import ProcessingStatus from "./components/ProcessingStatus.tsx";
 import ThemeSettings from "./components/ThemeSettings.tsx";
@@ -9,6 +11,7 @@ import { useTheme } from "./hooks/useTheme.ts";
 import { useTracks } from "./hooks/useTracks.ts";
 
 function App() {
+  const [lyricsOpen, setLyricsOpen] = useState(false);
   const audio = useAudio();
   const tracks = useTracks(audio.load);
   const preference = useTheme();
@@ -32,9 +35,16 @@ function App() {
           </div>}
         </section>
         {tracks.track && (
-          <div className="playback">
+          <div className="playback" data-lyrics={lyricsOpen}>
             <TrackPlayer track={tracks.track} duration={audio.duration} currentTime={audio.currentTime}
-              playing={audio.playing} onSeek={audio.seek} onToggle={audio.toggle} />
+              playing={audio.playing} onSeek={audio.seek} onToggle={audio.toggle} actions={
+                <button className="button lyrics-button" type="button" aria-expanded={lyricsOpen}
+                  aria-controls={lyricsOpen ? "lyrics" : undefined} onClick={() => setLyricsOpen(!lyricsOpen)}>
+                  <Icon name="lyrics" />Lyrics
+                </button>
+              } />
+            {lyricsOpen && <LyricsPanel key={tracks.track.id} track={tracks.track}
+              time={audio.currentTime} duration={audio.duration} seek={audio.seek} />}
             {audio.error && <p className="audio-error" role="alert">{audio.error}</p>}
           </div>
         )}

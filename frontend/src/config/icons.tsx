@@ -10,6 +10,7 @@ const drawings = {
   info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v5m0-8h.01" /></>,
   play: <path d="m9 5 11 7-11 7Z" fill="currentColor" />,
   pause: <><path d="M9 6v12m6-12v12" strokeWidth="2.5" /></>,
+  lyrics: <><path d="M4 5h16M4 10h12M4 15h9m-9 5h8m5-4 3-1v5" /><ellipse cx="18" cy="20" rx="2" ry="1.5" /></>,
   music: <><path d="M9 18V6l11-2v12M9 9l11-2" /><ellipse cx="6" cy="18" rx="3" ry="2" /><ellipse cx="17" cy="16" rx="3" ry="2" /></>,
 } satisfies Record<string, ReactNode>;
 
