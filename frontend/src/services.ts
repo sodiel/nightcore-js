@@ -61,3 +61,36 @@ export async function fetchLyrics(id: string, signal: AbortSignal): Promise<Lyri
   if (!response.ok) throw new Error("Could not load lyrics. Try again.");
   return await response.json() as Lyrics;
 }
+
+export function uploadTrack(file: File, preset: Preset, signal: AbortSignal, onProgress: (percent: number | null) => void) {
+  return new Promise<Track>((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    const abort = () => request.abort();
+    request.open("POST", "/api/tracks/upload");
+    request.responseType = "json";
+    request.timeout = 240_000;
+
+    request.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) onProgress(Math.round(event.loaded / event.total * 100));
+    };
+    request.upload.onload = () => onProgress(null);
+    request.onload = () => {
+      if (request.status >= 200 && request.status < 300 && request.response) resolve(request.response as Track);
+      else reject(new Error(request.response?.error || "Could not process this file. Try again."));
+    };
+    request.onerror = () => reject(new Error("Could not reach the server. Try again."));
+    request.ontimeout = () => reject(new Error("The upload timed out. Try again."));
+    request.onabort = () => reject(new DOMException("Upload aborted", "AbortError"));
+    request.onloadend = () => signal.removeEventListener("abort", abort);
+
+    if (signal.aborted) {
+      reject(new DOMException("Upload aborted", "AbortError"));
+      return;
+    }
+    signal.addEventListener("abort", abort, { once: true });
+    const form = new FormData();
+    form.append("preset", preset);
+    form.append("file", file);
+    request.send(form);
+  });
+}

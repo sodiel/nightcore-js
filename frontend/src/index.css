@@ -454,3 +454,16 @@ button:disabled { cursor: default; opacity: 0.65; }
   .playback[data-lyrics="true"] .track-heading h2 { font-size: clamp(24px, 3vw, 32px); }
   .audio-error { grid-column: 1 / -1; }
 }
+
+.file-button { background: var(--control); color: var(--ink); }
+.file-button:hover { background: var(--hover); }
+.upload-progress { width: 72px; height: 6px; accent-color: var(--accent); }
+
+@media (max-width: 959px) {
+  .search { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  .file-button { grid-column: 1 / -1; justify-self: start; }
+}
+
+@media (min-width: 768px) and (max-width: 959px) {
+  .mode-picker { align-self: start; }
+}

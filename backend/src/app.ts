@@ -1,4 +1,4 @@
-import express, { type Express, type ErrorRequestHandler } from "express";
+import express, { type Express, type ErrorRequestHandler, type Request, type Response } from "express";
 import cors from "cors";
 import { join } from "node:path";
 import { config } from "./config.ts";
@@ -6,10 +6,17 @@ import { ApiError } from "./errors.ts";
 import { acquireTrack, getSource, mediaFile, prepareOriginal, prepareVariant, trackResponse, variantFilename } from "./library.ts";
 import { getLyrics } from "./lyrics.ts";
 import { isPreset } from "./presets.ts";
+import { uploadOwner, uploadTrack } from "./uploads.ts";
 
 function requestedPreset(value: unknown) {
   if (!isPreset(value)) throw new ApiError(400, "INVALID_PRESET", "Choose an available audio mode.");
   return value;
+}
+
+async function requestedSource(req: Request, res: Response, id: string) {
+  const source = await getSource(id, uploadOwner(req));
+  if (source.upload) res.set("Cache-Control", "private, no-store");
+  return source;
 }
 
 export function createApp(): Express {
@@ -28,21 +35,23 @@ export function createApp(): Express {
     res.json(trackResponse(source, variant));
   });
 
+  app.post("/api/tracks/upload", uploadTrack);
+
   app.post("/api/tracks/:id/variants", async (req, res) => {
     const preset = requestedPreset(req.body?.preset);
-    const source = await getSource(req.params.id);
+    const source = await requestedSource(req, res, req.params.id);
     const { variant } = await prepareVariant(source, preset);
     res.json(variant);
   });
 
   app.get("/api/tracks/:id/lyrics", async (req, res) => {
-    const source = await getSource(req.params.id);
+    const source = await requestedSource(req, res, req.params.id);
     res.json(await getLyrics(source));
   });
 
   app.get("/api/media/:id/:filename", async (req, res) => {
-    const source = await getSource(req.params.id);
-    res.sendFile(await mediaFile(source, req.params.filename), { headers: { "X-Content-Type-Options": "nosniff" } });
+    const source = await requestedSource(req, res, req.params.id);
+    res.sendFile(await mediaFile(source, req.params.filename), { cacheControl: !source.upload, headers: { "X-Content-Type-Options": "nosniff" } });
   });
 
   const legacyCors = cors({

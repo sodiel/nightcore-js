@@ -26,9 +26,9 @@ function App() {
       <main className="workspace">
         <section className="source-controls" aria-labelledby="search-title">
           <h1 id="search-title">Find a track</h1>
-          <TrackSearch onSearch={tracks.search} />
+          <TrackSearch onSearch={tracks.search} onUpload={tracks.upload} />
           <ModePicker preset={tracks.preset} onPreset={tracks.selectPreset} />
-          <ProcessingStatus phase={tracks.pending?.type ?? null} />
+          <ProcessingStatus phase={tracks.pending?.type ?? null} uploadProgress={tracks.uploadProgress} />
           {tracks.failure && <div className="error-row">
             <p role="alert">{tracks.failure.message}</p>
             <button className="button subtle" type="button" onClick={tracks.retry}>Retry</button>

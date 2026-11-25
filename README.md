@@ -1,6 +1,10 @@
 # nightcore-js
 
-Search YouTube by track name or paste a video link. Nightcore raises the tempo and pitch. Daycore lowers both.
+Search YouTube by track name or paste a video link. Nightcore raises the tempo and pitch. Daycore lowers both. Open Lyrics while listening to follow the words or jump to a timed line.
+
+## Use your own audio
+
+Choose an MP3, WAV, M4A, FLAC or Ogg file up to 50 MB and 10 minutes. The connected server processes the file and keeps it available to your browser session for 24 hours. Open Lyrics to look up lyrics using the file's artist and title tags.
 
 ## Run with Docker
 
@@ -27,3 +31,5 @@ pnpm dev
 ```
 
 Open the Vite URL shown in the terminal. Vite proxies the API to `127.0.0.1:3001`. When changing the backend port, set `VITE_API_TARGET` for Vite, for example `VITE_API_TARGET=http://127.0.0.1:3010`.
+
+Run `pnpm test` in the backend with FFmpeg and ffprobe installed. The integration tests generate temporary audio and exercise the API on loopback.

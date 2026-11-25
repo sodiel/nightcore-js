@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { access, copyFile, mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { access, copyFile, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { probeAudio, renderAudio } from "./audio.ts";
 import { config } from "./config.ts";
@@ -13,6 +13,7 @@ export interface Source {
   metadata: Metadata | null;
   originalDuration: number;
   recording?: Recording;
+  upload?: { owner: string; expiresAt: number };
 }
 
 interface Variant {
@@ -42,9 +43,34 @@ export function sourceDir(id: string) {
 
 export async function initializeLibrary() {
   await mkdir(root, { recursive: true });
+  await clearExpiredUploads();
+  setInterval(() => {
+    void clearExpiredUploads().catch(() => console.error("Could not clean up expired uploads"));
+  }, 60 * 60 * 1000).unref();
 }
 
-export async function getSource(id: string): Promise<Source> {
+async function clearExpiredUploads() {
+  for (const dir of await readdir(root, { withFileTypes: true })) {
+    if (!dir.isDirectory()) continue;
+    if (dir.name.startsWith(".source-")) {
+      const staging = join(root, dir.name);
+      const entry = await stat(staging).catch(() => null);
+      if (entry && entry.mtimeMs + 60 * 60 * 1000 < Date.now()) {
+        await rm(staging, { recursive: true, force: true });
+      }
+    } else if (/^[a-f0-9]{64}$/.test(dir.name)) {
+      const source = await readFile(join(sourceDir(dir.name), "source.json"), "utf8")
+        .then((json) => JSON.parse(json) as Source).catch(() => null);
+      if (source?.upload && source.upload.expiresAt <= Date.now()) await forgetSource(dir.name);
+    }
+  }
+}
+
+export async function forgetSource(id: string) {
+  if (/^[a-f0-9]{64}$/.test(id)) await rm(sourceDir(id), { recursive: true, force: true });
+}
+
+export async function getSource(id: string, owner?: string): Promise<Source> {
   if (!/^[a-f0-9]{64}$/.test(id)) throw missingTrack();
   let source: Source;
   try {
@@ -52,6 +78,7 @@ export async function getSource(id: string): Promise<Source> {
   } catch {
     throw missingTrack();
   }
+  if (source.upload && (source.upload.owner !== owner || source.upload.expiresAt <= Date.now())) throw missingTrack();
   return source;
 }
 

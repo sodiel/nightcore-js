@@ -4,6 +4,7 @@ const drawings = {
   brand: <><path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4" /></>,
   close: <path d="m6 6 12 12M18 6 6 18" />,
   settings: <><path d="M4 7h6m4 0h6M4 17h10m4 0h2" /><circle cx="12" cy="7" r="2" /><circle cx="16" cy="17" r="2" /></>,
+  file: <path d="M13 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9m-6-6v6h6m-6-6 6 6M9 15h6m-3-3v6" />,
   search: <><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4 4" /></>,
   moon: <path d="M20.5 14.3A8.5 8.5 0 0 1 9.7 3.5a8.7 8.7 0 1 0 10.8 10.8Z" />,
   sun: <><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4m0-14.2-1.4 1.4M6.3 17.7l-1.4 1.4" /></>,
