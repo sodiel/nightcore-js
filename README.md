@@ -1,42 +1,29 @@
-# Nightcore Generator
+# nightcore-js
 
- __WIP__
+Search YouTube by track name or paste a video link. Nightcore raises the tempo and pitch. Daycore lowers both.
 
-You need to enter song name, it will be searched on YouTube via yt-dlp.
+## Run with Docker
 
-## Installation 
+Run `docker compose up --build` and open `http://localhost:3001`. The container serves the player and its API on the same origin. The named volume keeps the track cache between restarts.
 
-You need to download [yt-dlp](https://github.com/yt-dlp/yt-dlp/releases) into backend/ directory, rename with "yt-dlp"
+The Dockerfile pins Node, pnpm, FFmpeg and yt-dlp. The standalone yt-dlp release includes the EJS scripts and is checked against the release checksum. Update the FFmpeg and yt-dlp build arguments when updating the tool versions. See [yt-dlp's EJS guide](https://github.com/yt-dlp/yt-dlp/wiki/EJS).
 
-`git clone https://github.com/sodiel/nightcore-js`
+## Develop natively
 
-`cd nightcore-js`
+Install Node 24 or newer, pnpm, FFmpeg and ffprobe, and a current yt-dlp with bundled EJS or the `yt-dlp[default]` package. Keep the executables on PATH. Use `backend/.env.example` to configure custom paths or a different port.
 
-`cd frontend && npm install && npm run dev`
+In separate terminals:
 
-`cd ../backend && npm install && npm run dev`
+```sh
+cd backend
+pnpm install --frozen-lockfile
+pnpm dev
+```
 
-To use cookies, copy `backend/.env.example` to `backend/.env` and choose one:
+```sh
+cd frontend
+pnpm install --frozen-lockfile
+pnpm dev
+```
 
-- Set `YT_DLP_COOKIES_FROM_BROWSER` to a yt-dlp browser specification, for
-  example `firefox:/home/user/.floorp/profile-name` for a Floorp profile.
-  Use the absolute path to the actual profile directory, not `~`.
-- Or set `YT_DLP_COOKIES_PATH` to the absolute path of a Netscape-format
-  cookies file. yt-dlp may update this file.
-
-Restart the backend after changing the configuration. The backend process must
-be able to read the browser profile, and browser database locks or encryption
-may prevent extraction. Protect cookies files: they contain login credentials.
-See `backend/.env.example`. Node.js 20.12 or later is required to load it.
-
-For an HTTP 403 challenge, open the site in the browser and complete its
-challenge, then use that browser's cookies and set `YT_DLP_USER_AGENT` to its
-exact User-Agent. The browser and backend may also need the same public IP.
-These steps do not resolve every 403. See the [yt-dlp FAQ](https://github.com/yt-dlp/yt-dlp/wiki/FAQ).
-
-
-
-
-TODO:
-- [ ] add crossplatform post-install script 
-- [ ] add uploading track from file
+Open the Vite URL shown in the terminal. Vite proxies the API to `127.0.0.1:3001`. When changing the backend port, set `VITE_API_TARGET` for Vite, for example `VITE_API_TARGET=http://127.0.0.1:3010`.

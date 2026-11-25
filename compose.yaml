@@ -1,0 +1,16 @@
+services:
+  nightcore:
+    build: .
+    ports:
+      - "127.0.0.1:3001:3001"
+    volumes:
+      - tracks:/data/tracks
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/api/health').then(r=>{if(!r.ok)process.exitCode=1})"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  tracks:
