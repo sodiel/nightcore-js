@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { config } from "./config.ts";
 import { ApiError } from "./errors.ts";
 import { acquireTrack, getSource, mediaFile, prepareOriginal, prepareVariant, trackResponse, variantFilename } from "./library.ts";
+import { isLocalRequest } from "./local-auth.ts";
 import { getLyrics } from "./lyrics.ts";
 import { isPreset } from "./presets.ts";
 import { uploadOwner, uploadTrack } from "./uploads.ts";
@@ -22,6 +23,12 @@ async function requestedSource(req: Request, res: Response, id: string) {
 export function createApp(): Express {
   const app = express();
   app.disable("x-powered-by");
+  if (config.youtubeAuth.enabled) {
+    app.use((req, _res, next) => {
+      if (isLocalRequest(req.get("host") ?? "", req.get("origin"), req.get("sec-fetch-site"))) next();
+      else next(new ApiError(403, "LOCAL_ONLY", "Open this player from the local machine."));
+    });
+  }
   app.use(express.json({ limit: "8kb" }));
 
   app.get("/api/health", (_req, res) => {

@@ -1,10 +1,14 @@
 import { resolve } from "node:path";
+import { youtubeAuth } from "./local-auth.ts";
 
 export const maxSourceSeconds = 600;
 export const userAgent = "nightcore-js/1.0 (https://github.com/sodiel/nightcore-js)";
 
+const host = process.env.HOST || "127.0.0.1";
+
 export const config = {
-  host: process.env.HOST || "127.0.0.1",
+  host,
+  youtubeAuth: youtubeAuth(process.env, host),
   port: Number(process.env.PORT ?? 3001),
   legacyOrigin: process.env.PUBLIC_ORIGIN,
   tracksDir: resolve(process.env.TRACKS_DIR || "tracks"),

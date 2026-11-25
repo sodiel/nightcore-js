@@ -22,7 +22,7 @@ interface Variant {
   tempoFactor: number;
 }
 
-const root = join(config.tracksDir, "library");
+const root = join(config.tracksDir, config.youtubeAuth.enabled ? "library-local-youtube" : "library");
 const work = new Map<string, Promise<unknown>>();
 
 export function once<T>(key: string, action: () => Promise<T>): Promise<T> {

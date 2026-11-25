@@ -37,11 +37,11 @@ export async function downloadSource(input: string, destination: string) {
   try {
     const { stdout } = await run(config.ytDlp, [
       "--ignore-config", "--no-playlist", "--no-progress", "--no-simulate",
-      "--js-runtimes", "node", ...ffmpegLocation,
+      "--no-js-runtimes", "--js-runtimes", "node", ...ffmpegLocation,
       "--match-filter", `!is_live & duration <= ${maxSourceSeconds}`,
       "--socket-timeout", "15", "--retries", "1", "--fragment-retries", "1",
       "-f", "bestaudio[acodec!=none]", "--max-filesize", "70M",
-      "-o", destination, "--print", "%()j", "--", input,
+      "-o", destination, "--print", "%()j", ...config.youtubeAuth.args, "--", input,
     ], 140_000);
     if (!(await stat(destination).catch(() => null))) {
       throw new ApiError(404, "SOURCE_UNAVAILABLE", "No playable track was found. Try a different link or song name.");
@@ -55,7 +55,7 @@ export async function downloadSource(input: string, destination: string) {
     if (error instanceof ApiError) throw error;
     const stderr = typeof error === "object" && error !== null && "stderr" in error ? String(error.stderr) : "";
     if (/HTTP Error (403|429)|sign in|bot/i.test(stderr)) {
-      throw new ApiError(502, "SOURCE_RESTRICTED", "YouTube declined this request. Try another link or try again later.");
+      throw new ApiError(502, "SOURCE_RESTRICTED", "YouTube declined this request. Try another link or choose an audio file.");
     }
     throw new ApiError(502, "SOURCE_FAILED", "Could not download this track. Try another link or try again.");
   }
