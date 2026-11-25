@@ -7,11 +7,12 @@ interface Props {
   title: string;
   children: ReactNode;
   className?: string;
+  onClose?: () => void;
 }
 
-export default function Overlay({ dialogRef, id, title, children, className = "" }: Props) {
+export default function Overlay({ dialogRef, id, title, children, className = "", onClose }: Props) {
   return (
-    <dialog ref={dialogRef} id={id} className={`overlay ${className}`} aria-labelledby={`${id}-title`}
+    <dialog ref={dialogRef} id={id} className={`overlay ${className}`} aria-labelledby={`${id}-title`} onClose={onClose}
       onClick={(event) => { if (event.target === event.currentTarget) event.currentTarget.close(); }}>
       <div className="overlay-content">
         <div className="overlay-heading">

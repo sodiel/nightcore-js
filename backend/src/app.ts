@@ -37,7 +37,9 @@ export function createApp(): Express {
 
   app.post("/api/tracks", async (req, res) => {
     const preset = requestedPreset(req.body?.preset);
-    const { source } = await acquireTrack(req.body?.query);
+    const source = typeof req.body?.id === "string"
+      ? await getSource(req.body.id)
+      : (await acquireTrack(req.body?.query)).source;
     const { variant } = await prepareVariant(source, preset);
     res.json(trackResponse(source, variant));
   });
@@ -58,7 +60,9 @@ export function createApp(): Express {
 
   app.get("/api/media/:id/:filename", async (req, res) => {
     const source = await requestedSource(req, res, req.params.id);
-    res.sendFile(await mediaFile(source, req.params.filename), { cacheControl: !source.upload, headers: { "X-Content-Type-Options": "nosniff" } });
+    const media = await mediaFile(source, req.params.filename);
+    if (req.query.download === "1") res.attachment(media.filename);
+    res.type(media.mime).sendFile(media.path, { cacheControl: !source.upload, headers: { "X-Content-Type-Options": "nosniff" } });
   });
 
   const legacyCors = cors({

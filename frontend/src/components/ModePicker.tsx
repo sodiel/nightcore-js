@@ -17,7 +17,7 @@ export default function ModePicker({ preset, onPreset, busy, showLoader }: Props
     <div className="mode-picker">
       <div className="mode-group" role="group" aria-label="Playback mode">
         {modes.map((mode) => (
-          <div className="mode-option" key={mode.value}
+          <div className="mode-option" data-mode={mode.value} key={mode.value}
             onMouseLeave={() => setHideTip(false)} onBlur={() => setHideTip(false)}
             onKeyDown={(event) => { if (event.key === "Escape") setHideTip(true); }}>
             <button className="button mode-button" type="button"

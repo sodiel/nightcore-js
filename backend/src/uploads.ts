@@ -152,12 +152,13 @@ export async function uploadTrack(req: Request, res: Response) {
     const source = await saveSource(id, async (file) => {
       const received = await receiveFile(req, file);
       selected = received.preset;
-      const { duration, tags } = await probeAudio(file, true);
+      const { duration, tags, format } = await probeAudio(file, true);
       const { title, artist, album } = tags;
       const displayName = received.filename.slice(0, received.filename.length - extname(received.filename).length)
         .replace(/[\p{Cc}\p{Cf}]/gu, "").trim().slice(0, 180);
       return {
         originalDuration: duration,
+        format,
         metadata: { title: title || displayName || "Audio file", artist: artist || "", artworkUrl: "" },
         ...(title && artist ? { recording: { title, artist, ...(album ? { album } : {}) } } : {}),
         upload: { owner: uploadSession(req, res), expiresAt: Date.now() + sessionAge },

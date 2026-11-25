@@ -1,4 +1,4 @@
-export const primaryModes = [
+const primaryModes = [
   { value: "nightcore", label: "Nightcore", icon: "moon", description: "Plays 15% faster and raises the pitch" },
   { value: "daycore", label: "Daycore", icon: "sun", description: "Plays 15% slower and lowers the pitch" },
 ] as const;
@@ -10,10 +10,14 @@ const extraModes = [
   { value: "8d-audio", label: "8D audio", icon: "headphones", description: "Slow stereo panning for headphones" },
 ] as const;
 
-export const modes = [...primaryModes, ...extraModes];
+export const modes = [
+  { value: "original", label: "Original", icon: "music", description: "Plays the source audio at its original speed and pitch" },
+  ...primaryModes,
+  ...extraModes,
+] as const;
 
 export type PrimaryMode = typeof primaryModes[number]["value"];
-export type Preset = PrimaryMode | typeof extraModes[number]["value"];
+export type Preset = typeof modes[number]["value"];
 
 export function isPrimaryMode(preset: Preset): preset is PrimaryMode {
   return primaryModes.some((mode) => mode.value === preset);

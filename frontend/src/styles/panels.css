@@ -39,8 +39,9 @@
 }
 
 .playback { display: grid; gap: 16px; align-items: start; }
-.lyrics-button { width: fit-content; background: var(--control); color: var(--muted); }
-.lyrics-button:hover, .lyrics-button[aria-expanded="true"] { background: var(--hover); color: var(--ink); }
+.track-action { width: fit-content; background: var(--control); color: var(--muted); }
+.track-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.track-action:hover, .track-action[aria-expanded="true"] { background: var(--hover); color: var(--ink); }
 
 .lyrics-panel {
   min-width: 0;
@@ -81,3 +82,22 @@
   .playback[data-lyrics="true"] .track-heading h2 { font-size: clamp(24px, 3vw, 32px); }
   .audio-error { grid-column: 1 / -1; }
 }
+
+.share-confirmation { font-size: 13px; color: var(--muted); }
+.share-confirmation:empty { position: absolute; }
+
+.share-link {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 12px;
+  padding-inline: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--control);
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.share-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.share-copy { margin-top: 12px; color: var(--muted); font-size: 14px; }
+.share-dialog-action { width: fit-content; margin-top: 12px; }

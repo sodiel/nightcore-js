@@ -2,13 +2,14 @@ import { useRef, useState } from "react";
 import { Icon } from "../config/icons.tsx";
 import InlineLoader from "./InlineLoader.tsx";
 
-export default function TrackSearch({ onSearch, onUpload, phase, inline }: {
+export default function TrackSearch({ onSearch, onUpload, phase, inline, initialQuery }: {
   onSearch: (query: string) => void;
   onUpload: (file: File) => void;
   phase: "search" | "variant" | "upload" | null;
   inline: "search" | "variant" | "upload" | null;
+  initialQuery: string;
 }) {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
   const fileInput = useRef<HTMLInputElement>(null);
 
   return (

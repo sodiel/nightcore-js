@@ -1,6 +1,12 @@
 # nightcore-js
 
-Search YouTube by track name or paste a video link. Nightcore raises the tempo and pitch. Daycore lowers both. Open Lyrics while listening to follow the words or jump to a timed line. The playback mode group also includes Sped up, Slowed + reverb, Bass boost, and 8D audio. Settings lets you follow the mode's theme or keep a light or dark theme.
+Search YouTube by track name or paste a video link. Nightcore raises the tempo and pitch. Daycore lowers both. Open Lyrics while listening to follow the words or jump to a timed line. Original plays the downloaded or uploaded audio as-is. The playback mode group also includes Sped up, Slowed + reverb, Bass boost, and 8D audio. Settings lets you follow the mode's theme or keep a light or dark theme.
+
+## Download and share
+
+Use **Download** to save the currently loaded version. Effects are MP3 files. Select **Original** to save the exact source bytes in their stored format.
+
+On a hosted player, **Share** creates a link to the YouTube track and selected mode. A player on localhost uses the public YouTube link when available. Private uploads and local tracks without a public link can be shared as files using a compatible browser, or downloaded for sharing from the device.
 
 ## Use your own audio
 

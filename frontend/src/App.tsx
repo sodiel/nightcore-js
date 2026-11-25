@@ -3,6 +3,7 @@ import LyricsPanel from "./components/LyricsPanel.tsx";
 import ModePicker from "./components/ModePicker.tsx";
 import ProcessingStatus from "./components/ProcessingStatus.tsx";
 import ThemeSettings from "./components/ThemeSettings.tsx";
+import TrackActions from "./components/TrackActions.tsx";
 import TrackPlayer from "./components/TrackPlayer.tsx";
 import TrackSearch from "./components/TrackSearch.tsx";
 import { Icon } from "./config/icons.tsx";
@@ -31,7 +32,7 @@ function App() {
       <main className="workspace">
         <section className="source-controls" aria-labelledby="search-title">
           <h1 id="search-title">Find a track</h1>
-          <TrackSearch onSearch={tracks.search} onUpload={tracks.upload} phase={processing.phase} inline={processing.inline} />
+          <TrackSearch onSearch={tracks.search} onUpload={tracks.upload} phase={processing.phase} inline={processing.inline} initialQuery={tracks.sharedQuery} />
           <ModePicker preset={tracks.preset} onPreset={tracks.selectPreset}
             busy={processing.phase === "variant"} showLoader={processing.inline === "variant"} />
           <ProcessingStatus label={processing.label} slow={processing.slow} uploadProgress={processing.uploadProgress} />
@@ -44,10 +45,8 @@ function App() {
           <div className="playback" data-lyrics={lyricsOpen}>
             <TrackPlayer track={tracks.track} duration={audio.duration} currentTime={audio.currentTime}
               playing={audio.playing} onSeek={audio.seek} onToggle={audio.toggle} onArtworkLoad={artwork.onArtworkLoad} actions={
-                <button className="button lyrics-button" type="button" aria-expanded={lyricsOpen}
-                  aria-controls={lyricsOpen ? "lyrics" : undefined} onClick={() => setLyricsOpen(!lyricsOpen)}>
-                  <Icon name="lyrics" />Lyrics
-                </button>
+                <TrackActions key={tracks.track.variant.mediaUrl} track={tracks.track}
+                  lyricsOpen={lyricsOpen} onToggleLyrics={() => setLyricsOpen(!lyricsOpen)} />
               } />
             {lyricsOpen && <LyricsPanel key={tracks.track.id} track={tracks.track}
               time={audio.currentTime} duration={audio.duration} seek={audio.seek} />}

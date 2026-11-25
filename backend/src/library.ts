@@ -1,11 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
 import { access, copyFile, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { probeAudio, renderAudio } from "./audio.ts";
+import { probeAudio, renderAudio, type AudioFormat } from "./audio.ts";
 import { config } from "./config.ts";
 import { ApiError } from "./errors.ts";
 import { catalogMetadata, sourceMetadata, youtubeRecording, type Metadata, type Recording } from "./metadata.ts";
-import { presets, type Preset } from "./presets.ts";
+import { presets, type EffectPreset, type Preset } from "./presets.ts";
 import { downloadSource, youtubeInput } from "./youtube.ts";
 
 export interface Source {
@@ -13,6 +13,8 @@ export interface Source {
   metadata: Metadata | null;
   originalDuration: number;
   recording?: Recording;
+  format?: AudioFormat;
+  videoId?: string;
   upload?: { owner: string; expiresAt: number };
 }
 
@@ -20,8 +22,11 @@ interface Variant {
   preset: Preset;
   mediaUrl: string;
   tempoFactor: number;
+  filename: string;
+  mime: string;
 }
 
+const originalFilename = "original.audio";
 const root = join(config.tracksDir, config.youtubeAuth.enabled ? "library-local-youtube" : "library");
 const work = new Map<string, Promise<unknown>>();
 
@@ -89,7 +94,7 @@ function missingTrack() {
 export async function saveSource(id: string, prepare: (file: string) => Promise<Omit<Source, "id">>) {
   const staging = await mkdtemp(join(root, ".source-"));
   try {
-    const source = { id, ...await prepare(join(staging, "original.audio")) };
+    const source = { id, ...await prepare(join(staging, originalFilename)) };
     await writeFile(join(staging, "source.json"), JSON.stringify(source));
     try {
       await rename(staging, sourceDir(id));
@@ -107,9 +112,11 @@ export async function saveSource(id: string, prepare: (file: string) => Promise<
 export async function acquireTrack(value: unknown) {
   const { query, input, isSearch } = youtubeInput(value);
   const id = createHash("sha256").update(input).digest("hex");
+  const videoId = isSearch ? undefined : new URL(input).searchParams.get("v") ?? undefined;
+  const videoSource = videoId ? { videoId } : {};
   return once(`source:${id}`, async () => {
     const existing = await getSource(id).catch(() => null);
-    if (existing) return { source: existing, reused: true };
+    if (existing) return { source: { ...existing, ...videoSource }, reused: true };
 
     const legacyHash = createHash("md5").update(typeof value === "string" ? value : query).digest("hex");
     const legacyFile = join(config.tracksDir, `${legacyHash}.mp3`);
@@ -121,16 +128,17 @@ export async function acquireTrack(value: unknown) {
           .then((json) => JSON.parse(json) as Metadata, () => null).catch(() => null);
         const { title, artist } = legacyProbe.tags;
         const metadata = savedMetadata ?? (title || isSearch ? { title: title || query, artist: artist || "", artworkUrl: "" } : null);
-        return { originalDuration: legacyProbe.duration, metadata, ...(title && artist ? { recording: { title, artist } } : {}) };
+        return { originalDuration: legacyProbe.duration, format: legacyProbe.format, metadata, ...videoSource, ...(title && artist ? { recording: { title, artist } } : {}) };
       }
       const info = await downloadSource(input, original);
-      const { duration } = await probeAudio(original);
+      const { duration, format } = await probeAudio(original);
       const recording = youtubeRecording(info);
       const extracted = sourceMetadata(info);
       const metadata = recording
         ? { title: recording.title, artist: recording.artist, artworkUrl: extracted?.artworkUrl ?? "" }
         : extracted ?? (isSearch ? await catalogMetadata(query) : null);
-      return { originalDuration: duration, metadata, ...(recording ? { recording } : {}) };
+      const resolvedId = typeof info.id === "string" && /^[\w-]{11}$/.test(info.id) ? { videoId: info.id } : videoSource;
+      return { originalDuration: duration, format, metadata, ...resolvedId, ...(recording ? { recording } : {}) };
     });
     return { source, reused: Boolean(legacyProbe) };
   });
@@ -164,18 +172,18 @@ async function saveCover(source: Source) {
   }
 }
 
-export function variantFilename(preset: Preset) {
+export function variantFilename(preset: EffectPreset) {
   return `${preset}-${presets[preset].version}.mp3`;
 }
 
-async function renderFile(source: Source, filename: string, preset?: Preset) {
+async function renderFile(source: Source, filename: string, preset?: EffectPreset) {
   const dir = sourceDir(source.id);
   const output = join(dir, filename);
   return once(`render:${output}`, async () => {
     if (await readable(output)) return true;
     const temporary = join(dir, `.${filename}.${randomUUID()}.tmp`);
     try {
-      const input = join(dir, "original.audio");
+      const input = join(dir, originalFilename);
       const cover = preset ? await once(`cover:${source.id}`, async () => {
         const stored = join(dir, "artwork");
         return await readable(stored) ? stored : saveCover(source);
@@ -194,10 +202,43 @@ async function renderFile(source: Source, filename: string, preset?: Preset) {
   });
 }
 
+function originalFormat(source: Source) {
+  if (source.format) return Promise.resolve(source.format);
+  // Older cache entries predate the persisted format. Their source bytes stay in place.
+  return once(`probe-original:${source.id}`, async () => {
+    const probe = await probeAudio(join(sourceDir(source.id), originalFilename));
+    return probe.format;
+  });
+}
+
+function audioFilename(source: Source, extension: string, effect?: EffectPreset) {
+  const title = source.metadata?.title || "Track";
+  const artist = source.metadata?.artist;
+  const clean = (artist ? `${artist} - ${title}` : title).toWellFormed()
+    .replace(/[<>:"/\\|?*\p{Cc}\p{Cf}]/gu, "_");
+  const stem = Array.from(clean).slice(0, 54).join("").replace(/[. ]+$/, "").trim() || "Track";
+  return `${stem}${effect ? ` - ${effect}` : ""}.${extension}`;
+}
+
 export async function prepareVariant(source: Source, preset: Preset) {
+  if (preset === "original") {
+    const media = await mediaFile(source, originalFilename);
+    const variant: Variant = {
+      preset, tempoFactor: 1,
+      mediaUrl: `/api/media/${source.id}/${originalFilename}`,
+      filename: media.filename,
+      mime: media.mime,
+    };
+    return { variant, reused: true };
+  }
   const filename = variantFilename(preset);
   const reused = await renderFile(source, filename, preset);
-  const variant: Variant = { preset, mediaUrl: `/api/media/${source.id}/${filename}`, tempoFactor: presets[preset].tempoFactor };
+  const variant: Variant = {
+    preset, tempoFactor: presets[preset].tempoFactor,
+    mediaUrl: `/api/media/${source.id}/${filename}`,
+    filename: audioFilename(source, "mp3", preset),
+    mime: "audio/mpeg",
+  };
   return { variant, reused };
 }
 
@@ -206,13 +247,18 @@ export async function prepareOriginal(source: Source) {
 }
 
 export function trackResponse(source: Source, variant: Variant) {
-  return { id: source.id, metadata: source.metadata, originalDuration: source.originalDuration, variant };
+  const origin = source.upload
+    ? { kind: "upload" as const }
+    : { kind: "youtube" as const, ...(source.videoId ? { videoId: source.videoId } : {}) };
+  return { id: source.id, metadata: source.metadata, originalDuration: source.originalDuration, origin, variant };
 }
 
-export async function mediaFile(source: Source, filename: string) {
-  const valid = filename === "original.mp3" || (Object.keys(presets) as Preset[]).some((preset) => variantFilename(preset) === filename);
-  if (!valid) throw missingTrack();
-  const file = join(sourceDir(source.id), filename);
-  if (!(await stat(file).catch(() => null))?.isFile()) throw missingTrack();
-  return file;
+export async function mediaFile(source: Source, storedFilename: string) {
+  const effect = (Object.keys(presets) as EffectPreset[]).find((preset) => variantFilename(preset) === storedFilename);
+  const unprocessed = storedFilename === originalFilename;
+  if (!unprocessed && storedFilename !== "original.mp3" && !effect) throw missingTrack();
+  const path = join(sourceDir(source.id), storedFilename);
+  if (!(await stat(path).catch(() => null))?.isFile()) throw missingTrack();
+  const format = unprocessed ? await originalFormat(source) : { extension: "mp3", mime: "audio/mpeg" };
+  return { path, mime: format.mime, filename: audioFilename(source, format.extension, effect) };
 }

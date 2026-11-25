@@ -1,14 +1,16 @@
-import { useEffect, useRef, useState } from "react";
-import { renderVariant, searchTrack, uploadTrack, type Track, type Variant } from "../services.ts";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { renderVariant, searchTrack, uploadTrack, type Track, type TrackLookup, type Variant } from "../services.ts";
 
+import { readSharedTrack } from "../utils/sharing.ts";
 import { isPrimaryMode, type Preset, type PrimaryMode } from "../config/modes.ts";
 
 type Job =
   | { type: "upload"; file: File; preset: Preset }
-  | { type: "search"; query: string; preset: Preset }
+  | { type: "search"; lookup: TrackLookup; preset: Preset }
   | { type: "variant"; track: Track; preset: Preset };
 
 export function useTracks(loadAudio: (variant: Variant, previous?: Variant) => void) {
+  const [shared] = useState(() => readSharedTrack(window.location.search));
   const [track, setTrack] = useState<Track | null>(null);
   const [baseMode, setBaseMode] = useState<PrimaryMode>("nightcore");
   const desiredBase = useRef<PrimaryMode>("nightcore");
@@ -21,7 +23,14 @@ export function useTracks(loadAudio: (variant: Variant, previous?: Variant) => v
   const active = useRef<{ controller: AbortController; job: Job } | null>(null);
   const currentTrack = useRef<Track | null>(null);
 
-  useEffect(() => () => active.current?.controller.abort(), []);
+  const openSharedTrack = useEffectEvent((track: NonNullable<typeof shared>) => {
+    void run({ type: "search", ...track });
+  });
+
+  useEffect(() => {
+    if (shared) openSharedTrack(shared);
+    return () => active.current?.controller.abort();
+  }, [shared]);
 
   function updatePreset(next: Preset) {
     desiredPreset.current = next;
@@ -59,7 +68,7 @@ export function useTracks(loadAudio: (variant: Variant, previous?: Variant) => v
           result = { ...result, variant };
         }
       } else if (job.type === "search") {
-        result = await searchTrack(job.query, job.preset, controller.signal);
+        result = await searchTrack(job.lookup, job.preset, controller.signal);
       } else {
         result = { ...job.track, variant: await renderVariant(job.track.id, job.preset, controller.signal) };
       }
@@ -109,7 +118,8 @@ export function useTracks(loadAudio: (variant: Variant, previous?: Variant) => v
 
   return {
     track, preset, baseMode, selectPreset, failure, pending, uploadProgress,
-    search: (query: string) => void run({ type: "search", query, preset: desiredPreset.current }),
+    sharedQuery: shared && "query" in shared.lookup ? shared.lookup.query : "",
+    search: (query: string) => void run({ type: "search", lookup: { query }, preset: desiredPreset.current }),
     upload: (file: File) => void run({ type: "upload", file, preset: desiredPreset.current }),
     retry: () => { if (failure) void run(failure.job); },
   };

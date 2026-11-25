@@ -19,8 +19,9 @@ export const presets = {
   },
 };
 
-export type Preset = keyof typeof presets;
+export type EffectPreset = keyof typeof presets;
+export type Preset = "original" | EffectPreset;
 
 export function isPreset(value: unknown): value is Preset {
-  return typeof value === "string" && Object.hasOwn(presets, value);
+  return value === "original" || (typeof value === "string" && Object.hasOwn(presets, value));
 }

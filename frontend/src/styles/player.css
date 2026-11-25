@@ -7,7 +7,6 @@
   font-size: 14px;
 }
 
-.status-text:empty { display: none; }
 .linear-indicator {
   position: relative;
   width: 72px;

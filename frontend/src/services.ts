@@ -10,12 +10,15 @@ export interface Variant {
   preset: Preset;
   mediaUrl: string;
   tempoFactor: number;
+  filename: string;
+  mime: string;
 }
 
 export interface Track {
   id: string;
   metadata: TrackMetadata | null;
   originalDuration: number;
+  origin: { kind: "upload" } | { kind: "youtube"; videoId?: string };
   variant: Variant;
 }
 
@@ -38,8 +41,10 @@ async function request<T>(url: string, signal: AbortSignal, body: unknown): Prom
   return result as T;
 }
 
-export function searchTrack(query: string, preset: Preset, signal: AbortSignal) {
-  return request<Track>("/api/tracks", signal, { query, preset });
+export type TrackLookup = { query: string } | { id: string };
+
+export function searchTrack(lookup: TrackLookup, preset: Preset, signal: AbortSignal) {
+  return request<Track>("/api/tracks", signal, { ...lookup, preset });
 }
 
 export function renderVariant(id: string, preset: Preset, signal: AbortSignal) {

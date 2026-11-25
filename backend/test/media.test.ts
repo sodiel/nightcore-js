@@ -62,6 +62,16 @@ test("renders originals and private uploads through their normal API routes", as
   assert.equal(original.cached, true);
   assert.ok(original.nightcoreUrl.endsWith("nightcore-1.mp3"));
 
+  const publicTrack = await request("/api/tracks", { id: first.id, preset: "original" });
+  assert.equal(publicTrack.status, 200);
+  const publicOriginal = await publicTrack.json();
+  assert.equal(publicOriginal.origin.kind, "youtube");
+  assert.equal(publicOriginal.variant.tempoFactor, 1);
+  const originalMedia = await fetch(base + publicOriginal.variant.mediaUrl + "?download=1");
+  assert.equal(originalMedia.headers.get("content-type"), "audio/mpeg");
+  assert.match(originalMedia.headers.get("content-disposition") ?? "", /^attachment;/);
+  assert.deepEqual(Buffer.from(await originalMedia.arrayBuffer()), await readFile(legacy));
+
   const wave = join(storage, "test.wav");
   await run("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", `${sample}48000:duration=3`, wave]);
   function upload(body: Blob, name: string, preset = "daycore") {
@@ -118,6 +128,21 @@ test("renders originals and private uploads through their normal API routes", as
   assert.equal(track.metadata.title, "Upload test");
   assert.equal(track.originalDuration, 3);
   assert.equal(track.variant.tempoFactor, 0.85);
+  assert.equal(track.origin.kind, "upload");
+
+  const originalVariant = await request(`/api/tracks/${track.id}/variants`, { preset: "original" }, headers)
+    .then((response) => response.json());
+  assert.equal(originalVariant.filename, "Upload test.wav");
+  assert.equal(originalVariant.tempoFactor, 1);
+  const sourceDownloadUrl = base + originalVariant.mediaUrl + "?download=1";
+  assert.equal((await fetch(sourceDownloadUrl)).status, 404);
+  const sourceDownload = await fetch(sourceDownloadUrl, { headers });
+  assert.equal(sourceDownload.headers.get("content-type"), "audio/wav");
+  assert.match(sourceDownload.headers.get("content-disposition") ?? "", /^attachment; filename="Upload test\.wav"/);
+  assert.deepEqual(Buffer.from(await sourceDownload.arrayBuffer()), await readFile(wave));
+  assert.equal((await request("/api/tracks", { id: track.id, preset: "original" }, headers)).status, 404);
+  const effectDownload = await fetch(base + track.variant.mediaUrl + "?download=1", { headers });
+  assert.match(effectDownload.headers.get("content-disposition") ?? "", /Upload test - daycore\.mp3/);
 
   const duration = await probeAudio(join(storage, "library", track.id, "daycore-1.mp3"));
   assert.ok(Math.abs(duration.duration - 3 / 0.85) < 0.1);

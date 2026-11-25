@@ -40,7 +40,7 @@ export async function downloadSource(input: string, destination: string) {
       "--no-js-runtimes", "--js-runtimes", "node", ...ffmpegLocation,
       "--match-filter", `!is_live & duration <= ${maxSourceSeconds}`,
       "--socket-timeout", "15", "--retries", "1", "--fragment-retries", "1",
-      "-f", "bestaudio[acodec!=none]", "--max-filesize", "70M",
+      "-f", "bestaudio[ext=m4a]/bestaudio[acodec!=none]", "--max-filesize", "70M",
       "-o", destination, "--print", "%()j", ...config.youtubeAuth.args, "--", input,
     ], 140_000);
     if (!(await stat(destination).catch(() => null))) {
