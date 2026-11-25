@@ -1,29 +1,21 @@
-export const playIcon = (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    className="size-6"
-  >
-    <path
-      fillRule="evenodd"
-      d="M4.5 5.653c0-1.427 1.529-2.33 2.779-1.643l11.54 6.347c1.295.712 1.295 2.573 0 3.286L7.28 19.99c-1.25.687-2.779-.217-2.779-1.643V5.653Z"
-      clipRule="evenodd"
-    />
-  </svg>
-);
+import type { ReactNode } from "react";
 
-export const pauseIcon = (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    className="size-6"
-  >
-    <path
-      fillRule="evenodd"
-      d="M6.75 5.25a.75.75 0 0 1 .75-.75H9a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75H7.5a.75.75 0 0 1-.75-.75V5.25Zm7.5 0A.75.75 0 0 1 15 4.5h1.5a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75H15a.75.75 0 0 1-.75-.75V5.25Z"
-      clipRule="evenodd"
-    />
-  </svg>
-);
+const drawings = {
+  brand: <><path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4" /></>,
+  search: <><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4 4" /></>,
+  moon: <path d="M20.5 14.3A8.5 8.5 0 0 1 9.7 3.5a8.7 8.7 0 1 0 10.8 10.8Z" />,
+  sun: <><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4m0-14.2-1.4 1.4M6.3 17.7l-1.4 1.4" /></>,
+  info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v5m0-8h.01" /></>,
+  play: <path d="m9 5 11 7-11 7Z" fill="currentColor" />,
+  pause: <><path d="M9 6v12m6-12v12" strokeWidth="2.5" /></>,
+  music: <><path d="M9 18V6l11-2v12M9 9l11-2" /><ellipse cx="6" cy="18" rx="3" ry="2" /><ellipse cx="17" cy="16" rx="3" ry="2" /></>,
+} satisfies Record<string, ReactNode>;
+
+export function Icon({ name }: { name: keyof typeof drawings }) {
+  return (
+    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      {drawings[name]}
+    </svg>
+  );
+}

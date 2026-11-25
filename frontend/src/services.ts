@@ -1,39 +1,47 @@
+export type Preset = "nightcore" | "daycore";
+
 export interface TrackMetadata {
   artist: string;
   title: string;
   artworkUrl: string;
 }
 
-export interface TrackResponse {
-  success: boolean;
-  cached: boolean;
-  originalUrl: string;
-  nightcoreUrl: string;
-  filename: string;
-  nightcoreFilename: string;
-  metadata: TrackMetadata | null;
+export interface Variant {
+  preset: Preset;
+  mediaUrl: string;
+  tempoFactor: number;
 }
 
-export async function getNightcore(
-  trackQuery: string,
-): Promise<TrackResponse | null> {
-  const url = "http://localhost:3001/process";
+export interface Track {
+  id: string;
+  metadata: TrackMetadata | null;
+  originalDuration: number;
+  variant: Variant;
+}
+
+async function request<T>(url: string, signal: AbortSignal, body: unknown): Promise<T> {
+  let response: Response;
   try {
-    const response = await fetch(url, {
+    response = await fetch(url, {
+      signal,
       method: "POST",
-      body: JSON.stringify({ trackQuery }),
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
     });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      throw new Error(errorData?.error || `HTTP Error: ${response.status}`);
-    }
-    return (await response.json()) as TrackResponse;
   } catch (error) {
-    if (error instanceof Error) console.error(error.message);
-    throw error;
+    if (signal.aborted) throw error;
+    throw new Error("Could not reach the server. Try again.");
   }
-  return null;
+  const result = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(result?.error || "Could not prepare this track. Try again.");
+  if (!result) throw new Error("The server returned an empty response. Try again.");
+  return result as T;
+}
+
+export function searchTrack(query: string, preset: Preset, signal: AbortSignal) {
+  return request<Track>("/api/tracks", signal, { query, preset });
+}
+
+export function renderVariant(id: string, preset: Preset, signal: AbortSignal) {
+  return request<Variant>(`/api/tracks/${encodeURIComponent(id)}/variants`, signal, { preset });
 }

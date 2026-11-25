@@ -1,69 +1,46 @@
-import type { ChangeEvent, RefObject } from "react";
-import { playIcon, pauseIcon } from "../config/icons.tsx";
-import Player from "./ui/Player.tsx";
+import type { ReactNode } from "react";
+import { Icon } from "../config/icons.tsx";
+import type { Track } from "../services.ts";
+import { formatTime } from "../utils/formatTime.ts";
+import TrackDetails from "./TrackDetails.tsx";
 
-type TrackPlayerProps = {
-  nightcore: string | null;
-  audioRef: RefObject<HTMLAudioElement | null>;
+interface Props {
+  track: Track;
   duration: number;
   currentTime: number;
-  isPlaying: boolean;
-  onDurationChange: (duration: number) => void;
-  onTimeChange: (time: number) => void;
-  onEnded: () => void;
-  onSeek: (event: ChangeEvent<HTMLInputElement>) => void;
-  onTogglePlayback: () => void;
-};
+  playing: boolean;
+  onSeek: (seconds: number) => void;
+  onToggle: () => void;
+  actions?: ReactNode;
+}
 
-export default function TrackPlayer({
-  nightcore,
-  audioRef,
-  duration,
-  currentTime,
-  isPlaying,
-  onDurationChange,
-  onTimeChange,
-  onEnded,
-  onSeek,
-  onTogglePlayback,
-}: TrackPlayerProps) {
+export default function TrackPlayer({ track, duration, currentTime, playing, onSeek, onToggle, actions }: Props) {
+  const position = Math.min(currentTime, duration);
+  const elapsed = formatTime(position);
+  const total = formatTime(duration);
+
   return (
-    <div className="flex flex-row justify-center w-full">
-      {nightcore && (
-        <audio
-          src={nightcore}
-          ref={audioRef}
-          onLoadedMetadata={(event) =>
-            onDurationChange(event.currentTarget.duration)
-          }
-          onEnded={onEnded}
-          onTimeUpdate={(event) =>
-            onTimeChange(event.currentTarget.currentTime)
-          }
-        />
-      )}
-      <Player
-        duration={duration}
-        currentTime={currentTime}
-        handleSeek={onSeek}
-        hasAudio={Boolean(nightcore)}
-      />
-      <button
-        type="button"
-        aria-label={isPlaying ? "Pause" : "Play"}
-        disabled={!nightcore}
-        className="
-  p-2 rounded-md rounded-br-2xl
-  bg-(--md-sys-color-primary-light)
-  text-(--md-sys-color-on-primary-light)
-  dark:bg-(--md-sys-color-primary-dark)
-  dark:text-(--md-sys-color-on-primary-dark)
-  active:opacity-80
-"
-        onClick={onTogglePlayback}
-      >
-        {isPlaying ? pauseIcon : playIcon}
-      </button>
-    </div>
+    <section className="track-player" aria-label="Now playing">
+      <TrackDetails metadata={track.metadata} />
+      <div className="track-controls">
+        <div className="track-heading">
+          <h2>{track.metadata?.title || "Untitled track"}</h2>
+          {track.metadata?.artist && <p>{track.metadata.artist}</p>}
+        </div>
+        <div className="transport">
+          <button className="button play-button" type="button" aria-label={playing ? "Pause" : "Play"} onClick={onToggle}>
+            <Icon name={playing ? "pause" : "play"} />
+          </button>
+          <div className="timeline">
+            <input className="track-seek" type="range" aria-label="Playback position" aria-valuetext={`${elapsed} of ${total}`}
+              min={0} max={duration} step={0.01} disabled={!duration} value={position}
+              onChange={(event) => onSeek(Number(event.target.value))}
+            />
+            <div className="timecodes"><span>{elapsed}</span><span>{total}</span></div>
+          </div>
+        </div>
+        {actions}
+      </div>
+    </section>
   );
 }
