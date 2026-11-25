@@ -14,7 +14,7 @@ export default function ExtraEffects({ preset, onPreset }: Props) {
   const selected = extraModes.find((effect) => effect.value === preset);
 
   function open(button: HTMLButtonElement) {
-    if (window.matchMedia("(max-width: 767px)").matches) {
+    if (window.matchMedia("(max-width: 767px)").matches || !popover.current?.togglePopover) {
       dialog.current?.showModal();
       return;
     }

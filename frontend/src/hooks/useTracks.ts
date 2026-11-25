@@ -18,10 +18,10 @@ export function useTracks(loadAudio: (variant: Variant, previous?: Variant) => v
   const desiredPreset = useRef<Preset>("nightcore");
   const [pending, setPending] = useState<Job | null>(null);
   const [failure, setFailure] = useState<{ message: string; job: Job } | null>(null);
-  const active = useRef<AbortController | null>(null);
+  const active = useRef<{ controller: AbortController; job: Job } | null>(null);
   const currentTrack = useRef<Track | null>(null);
 
-  useEffect(() => () => active.current?.abort(), []);
+  useEffect(() => () => active.current?.controller.abort(), []);
 
   function updatePreset(next: Preset) {
     desiredPreset.current = next;
@@ -33,16 +33,16 @@ export function useTracks(loadAudio: (variant: Variant, previous?: Variant) => v
   }
 
   function cancel() {
-    active.current?.abort();
+    active.current?.controller.abort();
     active.current = null;
     setPending(null);
     setFailure(null);
   }
 
   async function run(job: Job) {
-    active.current?.abort();
+    active.current?.controller.abort();
     const controller = new AbortController();
-    active.current = controller;
+    active.current = { controller, job };
     updatePreset(job.preset);
     setPending(job);
     setUploadProgress(job.type === "upload" ? 0 : null);
@@ -80,7 +80,7 @@ export function useTracks(loadAudio: (variant: Variant, previous?: Variant) => v
         setBaseMode(loadedBase.current);
       }
     } finally {
-      if (active.current === controller) {
+      if (active.current?.controller === controller) {
         active.current = null;
         setPending(null);
       }
@@ -89,16 +89,18 @@ export function useTracks(loadAudio: (variant: Variant, previous?: Variant) => v
 
   function selectPreset(next: Preset) {
     if (next === desiredPreset.current) return;
-    if (pending?.type === "upload") {
+    const currentJob = active.current?.job;
+    if (currentJob?.type === "upload") {
       updatePreset(next);
       return;
     }
-    if (pending?.type === "search") {
-      void run({ ...pending, preset: next });
+    if (currentJob?.type === "search") {
+      void run({ ...currentJob, preset: next });
       return;
     }
-    if (track && track.variant.preset !== next) {
-      void run({ type: "variant", track, preset: next });
+    const loaded = currentTrack.current;
+    if (loaded && loaded.variant.preset !== next) {
+      void run({ type: "variant", track: loaded, preset: next });
       return;
     }
     cancel();

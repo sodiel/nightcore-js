@@ -25,10 +25,10 @@ export function parseLrc(lrc: string) {
   const entries = new Map<number, string[]>();
 
   for (const row of lrc.split(/\r?\n/)) {
-    const stamps = [...row.matchAll(/\[(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?\]/g)];
-    const last = stamps.at(-1);
-    if (!last || !/^\s*(?:\[[^\]]*\]\s*)+$/.test(row.slice(0, last.index + last[0].length))) continue;
-    const text = row.slice(last.index + last[0].length).trim();
+    const prefix = row.match(/^\s*(?:\[\d{1,3}:\d{2}(?:[.:]\d{1,3})?\][ \t]*)+/)?.[0];
+    if (!prefix) continue;
+    const stamps = prefix.matchAll(/\[(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?\]/g);
+    const text = row.slice(prefix.length).trim();
 
     for (const stamp of stamps) {
       const seconds = Number(stamp[2]);

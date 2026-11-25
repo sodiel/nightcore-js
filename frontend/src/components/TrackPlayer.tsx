@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Icon } from "../config/icons.tsx";
 import type { Track } from "../services.ts";
 import { formatTime } from "../utils/formatTime.ts";
@@ -34,6 +34,7 @@ export default function TrackPlayer({ track, duration, currentTime, playing, onS
           <div className="timeline">
             <input className="track-seek" type="range" aria-label="Playback position" aria-valuetext={`${elapsed} of ${total}`}
               min={0} max={duration} step={0.01} disabled={!duration} value={position}
+              style={{ "--seek-position": `${duration > 0 ? position / duration * 100 : 0}%` } as CSSProperties}
               onChange={(event) => onSeek(Number(event.target.value))}
             />
             <div className="timecodes"><span>{elapsed}</span><span>{total}</span></div>

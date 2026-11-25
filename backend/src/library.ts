@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { access, copyFile, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { probeAudio, renderAudio } from "./audio.ts";
@@ -91,8 +91,14 @@ export async function saveSource(id: string, prepare: (file: string) => Promise<
   try {
     const source = { id, ...await prepare(join(staging, "original.audio")) };
     await writeFile(join(staging, "source.json"), JSON.stringify(source));
-    await rename(staging, sourceDir(id));
-    return source;
+    try {
+      await rename(staging, sourceDir(id));
+      return source;
+    } catch (error) {
+      const code = typeof error === "object" && error !== null && "code" in error ? error.code : undefined;
+      if (!source.upload && (code === "EEXIST" || code === "ENOTEMPTY")) return getSource(id);
+      throw error;
+    }
   } finally {
     await rm(staging, { recursive: true, force: true });
   }
@@ -111,9 +117,10 @@ export async function acquireTrack(value: unknown) {
     const source = await saveSource(id, async (original) => {
       if (legacyProbe) {
         await copyFile(legacyFile, original);
-        const metadata = await readFile(join(config.tracksDir, `${legacyHash}_metadata.json`), "utf8")
+        const savedMetadata = await readFile(join(config.tracksDir, `${legacyHash}_metadata.json`), "utf8")
           .then((json) => JSON.parse(json) as Metadata, () => null).catch(() => null);
         const { title, artist } = legacyProbe.tags;
+        const metadata = savedMetadata ?? (title || isSearch ? { title: title || query, artist: artist || "", artworkUrl: "" } : null);
         return { originalDuration: legacyProbe.duration, metadata, ...(title && artist ? { recording: { title, artist } } : {}) };
       }
       const info = await downloadSource(input, original);
@@ -166,7 +173,7 @@ async function renderFile(source: Source, filename: string, preset?: Preset) {
   const output = join(dir, filename);
   return once(`render:${output}`, async () => {
     if (await readable(output)) return true;
-    const temporary = join(dir, `.${filename}.tmp`);
+    const temporary = join(dir, `.${filename}.${randomUUID()}.tmp`);
     try {
       const input = join(dir, "original.audio");
       const cover = preset ? await once(`cover:${source.id}`, async () => {

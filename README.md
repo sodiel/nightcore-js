@@ -8,7 +8,7 @@ Choose an MP3, WAV, M4A, FLAC or Ogg file up to 50 MB and 10 minutes. The connec
 
 ## Run with Docker
 
-Run `docker compose up --build` and open `http://localhost:3001`. The container serves the player and its API on the same origin. The named volume keeps the track cache between restarts.
+Run `docker compose up --build` and open `http://localhost:3001`. The container serves the player and its API on the same origin. The named volume keeps the track cache between restarts. For a reverse proxy, set `PUBLIC_ORIGIN` to the exact external origin, including its scheme.
 
 The Dockerfile pins Node, pnpm, FFmpeg and yt-dlp. The standalone yt-dlp release includes the EJS scripts and is checked against the release checksum. Update the FFmpeg and yt-dlp build arguments when updating the tool versions. See [yt-dlp's EJS guide](https://github.com/yt-dlp/yt-dlp/wiki/EJS).
 

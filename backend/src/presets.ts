@@ -1,5 +1,5 @@
 function changePitchAndTempo(factor: number) {
-  return `aresample=44100,asetrate=${44100 * factor},aresample=44100`;
+  return `aresample=44100,asetrate=${Math.round(44100 * factor)},aresample=44100`;
 }
 
 export const presets = {

@@ -6,7 +6,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import type { AddressInfo } from "node:net";
-import type { Server } from "node:http";
+import { request as httpRequest, type Server } from "node:http";
+import { setTimeout as delay } from "node:timers/promises";
 
 test("renders originals and private uploads through their normal API routes", async (t) => {
   const storage = await mkdtemp(join(tmpdir(), "nightcore-test-"));
@@ -72,6 +73,40 @@ test("renders originals and private uploads through their normal API routes", as
 
   const invalid = await upload(new Blob(["Unreadable audio"]), "fake.mp3");
   assert.equal(invalid.status, 415);
+  assert.equal((await readdir(join(storage, "library"))).length, 1);
+
+  const rejectedStatus = await new Promise<number | undefined>((resolve, reject) => {
+    const client = httpRequest(`${base}/api/tracks/upload`, {
+      method: "POST", headers: { "Content-Type": "multipart/form-data; boundary=test", "Content-Length": "50070000" },
+    }, (response) => {
+      response.resume();
+      client.destroy();
+      resolve(response.statusCode);
+    });
+    client.once("error", reject);
+    client.flushHeaders();
+  });
+  assert.equal(rejectedStatus, 413);
+
+  const interrupted = httpRequest(`${base}/api/tracks/upload`, {
+    method: "POST", headers: { "Content-Type": "multipart/form-data; boundary=test" },
+  });
+  interrupted.on("error", () => {});
+  interrupted.write('--test\r\nContent-Disposition: form-data; name="preset"\r\n\r\ndaycore\r\n' +
+    '--test\r\nContent-Disposition: form-data; name="file"; filename="test.wav"\r\n\r\npartial');
+  try {
+    for (let attempt = 0; attempt < 50; attempt++) {
+      if ((await readdir(join(storage, "library"))).some((name) => name.startsWith(".source-"))) break;
+      await delay(20);
+    }
+    assert.ok((await readdir(join(storage, "library"))).some((name) => name.startsWith(".source-")));
+  } finally {
+    interrupted.destroy();
+  }
+  for (let attempt = 0; attempt < 50; attempt++) {
+    if ((await readdir(join(storage, "library"))).length === 1) break;
+    await delay(20);
+  }
   assert.equal((await readdir(join(storage, "library"))).length, 1);
 
   const uploaded = await upload(new Blob([await readFile(wave)]), "Upload test.wav");
