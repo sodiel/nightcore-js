@@ -160,11 +160,7 @@ button:disabled { cursor: default; opacity: 0.65; }
 .file-button:hover { background: var(--hover); }
 .upload-progress { width: 72px; height: 6px; accent-color: var(--accent); }
 
-@media (max-width: 959px) {
+@media (max-width: 599px) {
   .search { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
   .file-button { grid-column: 1 / -1; justify-self: start; }
-}
-
-@media (min-width: 768px) and (max-width: 959px) {
-  .mode-picker { align-self: start; }
 }

@@ -155,8 +155,6 @@
 @media (min-width: 768px) {
   .app-header { padding-inline: 32px; }
   .workspace { padding-inline: 32px; }
-  .source-controls { grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px; align-items: center; }
-  .source-controls h1, .status-slot, .error-row { grid-column: 1 / -1; }
   .track-player { grid-template-columns: minmax(144px, 30%) minmax(0, 1fr); align-items: center; padding: 24px; gap: 32px; }
 }
 

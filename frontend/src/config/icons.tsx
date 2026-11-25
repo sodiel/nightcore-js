@@ -4,7 +4,6 @@ const drawings = {
   brand: <><path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4" /></>,
   close: <path d="m6 6 12 12M18 6 6 18" />,
   settings: <><path d="M4 7h6m4 0h6M4 17h10m4 0h2" /><circle cx="12" cy="7" r="2" /><circle cx="16" cy="17" r="2" /></>,
-  effects: <path d="M3 12h3l3-6 4 12 3-6h5" />,
   fast: <path d="m5 6 7 6-7 6Zm8 0 7 6-7 6Z" />,
   reverb: <><path d="M4 9h3l3-3v12l-3-3H4Z" /><path d="M14 9a4 4 0 0 1 0 6m3-9a8 8 0 0 1 0 12" /></>,
   bass: <path d="M4 19h16M5 15l4-4 4 4 6-8M16 7h3v3" />,
