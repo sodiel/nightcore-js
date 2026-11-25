@@ -11,17 +11,18 @@ interface Props {
   playing: boolean;
   onSeek: (seconds: number) => void;
   onToggle: () => void;
+  onArtworkLoad: (image: HTMLImageElement) => void;
   actions?: ReactNode;
 }
 
-export default function TrackPlayer({ track, duration, currentTime, playing, onSeek, onToggle, actions }: Props) {
+export default function TrackPlayer({ track, duration, currentTime, playing, onSeek, onToggle, onArtworkLoad, actions }: Props) {
   const position = Math.min(currentTime, duration);
   const elapsed = formatTime(position);
   const total = formatTime(duration);
 
   return (
     <section className="track-player" aria-label="Now playing">
-      <TrackDetails metadata={track.metadata} />
+      <TrackDetails key={track.metadata?.artworkUrl} artworkUrl={track.metadata?.artworkUrl} onArtworkLoad={onArtworkLoad} />
       <div className="track-controls">
         <div className="track-heading">
           <h2>{track.metadata?.title || "Untitled track"}</h2>

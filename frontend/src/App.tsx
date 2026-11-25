@@ -6,6 +6,7 @@ import ThemeSettings from "./components/ThemeSettings.tsx";
 import TrackPlayer from "./components/TrackPlayer.tsx";
 import TrackSearch from "./components/TrackSearch.tsx";
 import { Icon } from "./config/icons.tsx";
+import { useArtworkTheme } from "./hooks/useArtworkTheme.ts";
 import { useAudio } from "./hooks/useAudio.ts";
 import { useTheme } from "./hooks/useTheme.ts";
 import { useTracks } from "./hooks/useTracks.ts";
@@ -17,8 +18,10 @@ function App() {
   const preference = useTheme();
   const theme = preference.choice === "mode" ? (tracks.baseMode === "daycore" ? "light" : "dark") : preference.choice;
 
+  const artwork = useArtworkTheme(tracks.track?.metadata?.artworkUrl, theme);
+
   return (
-    <div className="app" data-theme={theme}>
+    <div className="app" data-theme={theme} style={artwork.style}>
       <header className="app-header">
         <div className="wordmark"><span className="brand-mark"><Icon name="brand" /></span>nightcore-js</div>
         <ThemeSettings choice={preference.choice} onChange={preference.choose} />
@@ -37,7 +40,7 @@ function App() {
         {tracks.track && (
           <div className="playback" data-lyrics={lyricsOpen}>
             <TrackPlayer track={tracks.track} duration={audio.duration} currentTime={audio.currentTime}
-              playing={audio.playing} onSeek={audio.seek} onToggle={audio.toggle} actions={
+              playing={audio.playing} onSeek={audio.seek} onToggle={audio.toggle} onArtworkLoad={artwork.onArtworkLoad} actions={
                 <button className="button lyrics-button" type="button" aria-expanded={lyricsOpen}
                   aria-controls={lyricsOpen ? "lyrics" : undefined} onClick={() => setLyricsOpen(!lyricsOpen)}>
                   <Icon name="lyrics" />Lyrics
