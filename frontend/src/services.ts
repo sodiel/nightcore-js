@@ -1,39 +1,101 @@
+import type { Preset } from "./config/modes.ts";
+
 export interface TrackMetadata {
   artist: string;
   title: string;
   artworkUrl: string;
 }
 
-export interface TrackResponse {
-  success: boolean;
-  cached: boolean;
-  originalUrl: string;
-  nightcoreUrl: string;
+export interface Variant {
+  preset: Preset;
+  mediaUrl: string;
+  tempoFactor: number;
   filename: string;
-  nightcoreFilename: string;
-  metadata: TrackMetadata | null;
+  mime: string;
 }
 
-export async function getNightcore(
-  trackQuery: string,
-): Promise<TrackResponse | null> {
-  const url = "http://localhost:3001/process";
+export interface Track {
+  id: string;
+  metadata: TrackMetadata | null;
+  originalDuration: number;
+  origin: { kind: "upload" } | { kind: "youtube"; videoId?: string };
+  variant: Variant;
+}
+
+async function request<T>(url: string, signal: AbortSignal, body: unknown): Promise<T> {
+  let response: Response;
   try {
-    const response = await fetch(url, {
+    response = await fetch(url, {
+      signal,
       method: "POST",
-      body: JSON.stringify({ trackQuery }),
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
     });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      throw new Error(errorData?.error || `HTTP Error: ${response.status}`);
-    }
-    return (await response.json()) as TrackResponse;
   } catch (error) {
-    if (error instanceof Error) console.error(error.message);
-    throw error;
+    if (signal.aborted) throw error;
+    throw new Error("Could not reach the server. Try again.");
   }
-  return null;
+  const result = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(result?.error || "Could not prepare this track. Try again.");
+  if (!result) throw new Error("The server returned an empty response. Try again.");
+  return result as T;
+}
+
+export type TrackLookup = { query: string } | { id: string };
+
+export function searchTrack(lookup: TrackLookup, preset: Preset, signal: AbortSignal) {
+  return request<Track>("/api/tracks", signal, { ...lookup, preset });
+}
+
+export function renderVariant(id: string, preset: Preset, signal: AbortSignal) {
+  return request<Variant>(`/api/tracks/${encodeURIComponent(id)}/variants`, signal, { preset });
+}
+
+export interface LyricLine {
+  time: number;
+  text: string;
+}
+
+export type Lyrics =
+  | { status: "synced"; lines: LyricLine[] }
+  | { status: "plain"; text: string }
+  | { status: "unavailable" | "instrumental" };
+
+export async function fetchLyrics(id: string, signal: AbortSignal): Promise<Lyrics> {
+  const response = await fetch(`/api/tracks/${encodeURIComponent(id)}/lyrics`, { signal });
+  if (!response.ok) throw new Error("Could not load lyrics. Try again.");
+  return await response.json() as Lyrics;
+}
+
+export function uploadTrack(file: File, preset: Preset, signal: AbortSignal, onProgress: (percent: number | null) => void) {
+  return new Promise<Track>((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    const abort = () => request.abort();
+    request.open("POST", "/api/tracks/upload");
+    request.responseType = "json";
+    request.timeout = 240_000;
+
+    request.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) onProgress(Math.round(event.loaded / event.total * 100));
+    };
+    request.upload.onload = () => onProgress(null);
+    request.onload = () => {
+      if (request.status >= 200 && request.status < 300 && request.response) resolve(request.response as Track);
+      else reject(new Error(request.response?.error || "Could not process this file. Try again."));
+    };
+    request.onerror = () => reject(new Error("Could not reach the server. Try again."));
+    request.ontimeout = () => reject(new Error("The upload timed out. Try again."));
+    request.onabort = () => reject(new DOMException("Upload aborted", "AbortError"));
+    request.onloadend = () => signal.removeEventListener("abort", abort);
+
+    if (signal.aborted) {
+      reject(new DOMException("Upload aborted", "AbortError"));
+      return;
+    }
+    signal.addEventListener("abort", abort, { once: true });
+    const form = new FormData();
+    form.append("preset", preset);
+    form.append("file", file);
+    request.send(form);
+  });
 }

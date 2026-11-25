@@ -1,143 +1,61 @@
-import { useEffect, useRef, useState } from "react";
-import { getNightcore } from "./services.ts";
-import TrackSearch from "./components/TrackSearch.tsx";
-import TrackDetails from "./components/TrackDetails.tsx";
+import { useState } from "react";
+import LyricsPanel from "./components/LyricsPanel.tsx";
+import ModePicker from "./components/ModePicker.tsx";
+import ProcessingStatus from "./components/ProcessingStatus.tsx";
+import ThemeSettings from "./components/ThemeSettings.tsx";
+import TrackActions from "./components/TrackActions.tsx";
 import TrackPlayer from "./components/TrackPlayer.tsx";
-import {
-  argbFromHex,
-  themeFromSourceColor,
-  applyTheme,
-  themeFromImage,
-} from "@material/material-color-utilities";
+import TrackSearch from "./components/TrackSearch.tsx";
+import { Icon } from "./config/icons.tsx";
+import { useArtworkTheme } from "./hooks/useArtworkTheme.ts";
+import { useAudio } from "./hooks/useAudio.ts";
+import { useProcessing } from "./hooks/useProcessing.ts";
+import { useTheme } from "./hooks/useTheme.ts";
+import { useTracks } from "./hooks/useTracks.ts";
 
 function App() {
-  const [trackQuery, setTrackQuery] = useState("");
-  const [nightcore, setNightcore] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [duration, setDuration] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [artwork, setArtwork] = useState<string | null>(null);
-  const [title, setTitle] = useState("");
-  const [artist, setArtist] = useState("");
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const imageRef = useRef<HTMLImageElement | null>(null);
+  const [lyricsOpen, setLyricsOpen] = useState(false);
+  const audio = useAudio();
+  const tracks = useTracks(audio.load);
+  const preference = useTheme();
+  const processing = useProcessing(tracks.pending, tracks.uploadProgress);
+  const { theme } = preference;
 
-  useEffect(() => {
-    applyTheme(themeFromSourceColor(argbFromHex("#6750a4")), {
-      target: document.documentElement,
-      brightnessSuffix: true,
-    });
-  }, []);
-
-  const handleTheme = async (img: HTMLImageElement) => {
-    try {
-      const theme = await themeFromImage(img);
-      applyTheme(theme, {
-        target: document.documentElement,
-        brightnessSuffix: true,
-      });
-    } catch (error) {
-      console.warn("Could not extract artwork colors:", error);
-    }
-  };
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (isPlaying) {
-      audio.play().catch((error) => {
-        console.log("Error:", error);
-      });
-    } else {
-      audio.pause();
-    }
-    if (audio.ended) {
-      setIsPlaying(false);
-    }
-  }, [isPlaying]);
-
-  async function handleGetNightcore(trackQuery: string) {
-    try {
-      setIsLoading(true);
-      setErrorMessage("");
-      const response = await getNightcore(trackQuery);
-      if (response?.success) {
-        setCurrentTime(0);
-        setDuration(0);
-        setNightcore(response.nightcoreUrl);
-        setArtwork(response.metadata?.artworkUrl ?? null);
-        setTitle(response.metadata?.title ?? "");
-        setArtist(response.metadata?.artist ?? "");
-        setIsPlaying(false);
-      } else {
-        throw new Error("Server Error");
-      }
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Server Error");
-      if (error instanceof Error) console.error(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTime = parseFloat(e.target.value);
-    setCurrentTime(newTime);
-
-    if (audioRef.current) {
-      audioRef.current.currentTime = newTime;
-    }
-  };
+  const artwork = useArtworkTheme(tracks.track?.metadata?.artworkUrl, theme);
 
   return (
-    <section className="h-screen flex flex-col justify-center items-center bg-(--md-sys-color-background-light) dark:bg-(--md-sys-color-background-dark) text-(--md-sys-color-on-background-light) dark:text-(--md-sys-color-on-background-dark) font-roboto font-display">
-      <div className="flex flex-col justify-center items-center bg-(--md-sys-color-surface-light) dark:bg-(--md-sys-color-surface-dark) text-(--md-sys-color-on-surface-light) dark:text-(--md-sys-color-on-surface-dark) p-8 m-8 rounded-4xl border border-(--md-sys-color-outline-light) dark:border-(--md-sys-color-outline-dark) gap-1">
-        {isLoading && (
-          <p className="text-(--md-sys-color-on-surface-variant-light) dark:text-(--md-sys-color-on-surface-variant-dark)">
-            Loading...
-          </p>
+    <div className="app" data-theme={theme} style={artwork.style}>
+      <header className="app-header">
+        <div className="wordmark"><span className="brand-mark"><Icon name="brand" /></span>nightcore-js</div>
+        <ThemeSettings choice={preference.choice} onChange={preference.choose} />
+      </header>
+      <main className="workspace">
+        <section className="source-controls" aria-labelledby="search-title">
+          <h1 id="search-title">Find a track</h1>
+          <TrackSearch onSearch={tracks.search} onUpload={tracks.upload} phase={processing.phase} inline={processing.inline} initialQuery={tracks.sharedQuery} />
+          <ModePicker preset={tracks.preset} onPreset={tracks.selectPreset}
+            busy={processing.phase === "variant"} showLoader={processing.inline === "variant"} />
+          <ProcessingStatus label={processing.label} slow={processing.slow} uploadProgress={processing.uploadProgress} />
+          {tracks.failure && <div className="error-row">
+            <p role="alert">{tracks.failure.message}</p>
+            <button className="button subtle" type="button" onClick={tracks.retry}>Retry</button>
+          </div>}
+        </section>
+        {tracks.track && (
+          <div className="playback" data-lyrics={lyricsOpen}>
+            <TrackPlayer track={tracks.track} duration={audio.duration} currentTime={audio.currentTime}
+              playing={audio.playing} onSeek={audio.seek} onToggle={audio.toggle} onArtworkLoad={artwork.onArtworkLoad} actions={
+                <TrackActions key={tracks.track.variant.mediaUrl} track={tracks.track}
+                  lyricsOpen={lyricsOpen} onToggleLyrics={() => setLyricsOpen(!lyricsOpen)} />
+              } />
+            {lyricsOpen && <LyricsPanel key={tracks.track.id} track={tracks.track}
+              time={audio.currentTime} duration={audio.duration} seek={audio.seek} />}
+            {audio.error && <p className="audio-error" role="alert">{audio.error}</p>}
+          </div>
         )}
-        {errorMessage && (
-          <p
-            role="alert"
-            className="text-(--md-sys-color-error-light) dark:text-(--md-sys-color-error-dark)"
-          >
-            {errorMessage}
-          </p>
-        )}
-        <TrackSearch
-          query={trackQuery}
-          isLoading={isLoading}
-          onQueryChange={setTrackQuery}
-          onSearch={() => void handleGetNightcore(trackQuery)}
-        />
-        <TrackDetails
-          artwork={artwork}
-          title={title}
-          artist={artist}
-          imageRef={imageRef}
-          handleTheme={handleTheme}
-        />
-        <TrackPlayer
-          nightcore={nightcore}
-          audioRef={audioRef}
-          duration={duration}
-          currentTime={currentTime}
-          isPlaying={isPlaying}
-          onDurationChange={setDuration}
-          onTimeChange={setCurrentTime}
-          onEnded={() => {
-            setIsPlaying(false);
-            setCurrentTime(0);
-          }}
-          onSeek={handleSeek}
-          onTogglePlayback={() => setIsPlaying((playing) => !playing)}
-        />
-      </div>
-    </section>
+        <audio ref={audio.audioRef} preload="metadata" {...audio.events} />
+      </main>
+    </div>
   );
 }
 

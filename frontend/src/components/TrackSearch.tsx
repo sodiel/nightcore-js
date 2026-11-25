@@ -1,39 +1,49 @@
-type TrackSearchProps = {
-  query: string;
-  isLoading: boolean;
-  onQueryChange: (query: string) => void;
-  onSearch: () => void;
-};
+import { useRef, useState } from "react";
+import { Icon } from "../config/icons.tsx";
+import InlineLoader from "./InlineLoader.tsx";
 
-export default function TrackSearch({
-  query,
-  isLoading,
-  onQueryChange,
-  onSearch,
-}: TrackSearchProps) {
+export default function TrackSearch({ onSearch, onUpload, phase, inline, initialQuery }: {
+  onSearch: (query: string) => void;
+  onUpload: (file: File) => void;
+  phase: "search" | "variant" | "upload" | null;
+  inline: "search" | "variant" | "upload" | null;
+  initialQuery: string;
+}) {
+  const [query, setQuery] = useState(initialQuery);
+  const fileInput = useRef<HTMLInputElement>(null);
+
   return (
-    <form
-      className="flex flex-row w-full"
-      onSubmit={(event) => {
-        event.preventDefault();
-        onSearch();
-      }}
-    >
-      <input
-        className="w-full bg-(--md-sys-color-surface-light) dark:bg-(--md-sys-color-surface-dark) text-(--md-sys-color-on-surface-light) dark:text-(--md-sys-color-on-surface-dark) placeholder:text-(--md-sys-color-on-surface-variant-light) dark:placeholder:text-(--md-sys-color-on-surface-variant-dark) border border-(--md-sys-color-outline-light) dark:border-(--md-sys-color-outline-dark) rounded-md rounded-tl-2xl text-nowrap p-2 mr-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--md-sys-color-primary-light) dark:focus-visible:outline-(--md-sys-color-primary-dark)"
-        value={query}
-        onChange={(event) => onQueryChange(event.target.value)}
-        type="text"
-        aria-label="Song name or URL"
-        placeholder="Enter song name or paste URL"
-      />
-      <button
-        type="submit"
-        disabled={isLoading}
-        className="p-2 rounded-md rounded-tr-2xl bg-(--md-sys-color-primary-light) text-(--md-sys-color-on-primary-light) dark:bg-(--md-sys-color-primary-dark) dark:text-(--md-sys-color-on-primary-dark) active:opacity-80 disabled:opacity-50"
-      >
-        {isLoading ? "Loading..." : "Nightcore"}
+    <form className="search" role="search" onSubmit={(event) => {
+      event.preventDefault();
+      if (query.trim()) onSearch(query.trim());
+    }}>
+      <div className="search-field">
+        <input
+          type="text"
+          name="query"
+          aria-label="Song name or YouTube link"
+          placeholder="Song or YouTube link"
+          autoComplete="off"
+          enterKeyHint="search"
+          maxLength={500}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </div>
+      <button className="button primary" type="submit" disabled={!query.trim()} aria-busy={phase === "search"}>
+        <span className="button-icon">{inline === "search" ? <InlineLoader /> : <Icon name="search" />}</span>
+        Search
       </button>
+      <button className="button file-button" type="button" aria-busy={phase === "upload"} onClick={() => fileInput.current?.click()}>
+        <span className="button-icon">{inline === "upload" ? <InlineLoader /> : <Icon name="file" />}</span>
+        Choose file
+      </button>
+      <input ref={fileInput} type="file" hidden accept=".mp3,.wav,.m4a,.flac,.ogg,.oga,.opus"
+        onChange={(event) => {
+          const file = event.currentTarget.files?.[0];
+          event.currentTarget.value = "";
+          if (file) onUpload(file);
+        }} />
     </form>
   );
 }
