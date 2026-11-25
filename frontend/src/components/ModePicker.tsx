@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { Icon } from "../config/icons.tsx";
 import { modes, type Preset } from "../config/modes.ts";
+import InlineLoader from "./InlineLoader.tsx";
 
 interface Props {
   preset: Preset;
   onPreset: (preset: Preset) => void;
+  busy: boolean;
+  showLoader: boolean;
 }
 
-export default function ModePicker({ preset, onPreset }: Props) {
+export default function ModePicker({ preset, onPreset, busy, showLoader }: Props) {
   const [hideTip, setHideTip] = useState(false);
 
   return (
@@ -18,9 +21,9 @@ export default function ModePicker({ preset, onPreset }: Props) {
             onMouseLeave={() => setHideTip(false)} onBlur={() => setHideTip(false)}
             onKeyDown={(event) => { if (event.key === "Escape") setHideTip(true); }}>
             <button className="button mode-button" type="button"
-              aria-pressed={preset === mode.value} aria-describedby={`tip-${mode.value}`}
+              aria-pressed={preset === mode.value} aria-busy={busy && preset === mode.value} aria-describedby={`tip-${mode.value}`}
               onClick={() => onPreset(mode.value)}>
-              <Icon name={mode.icon} />
+              <span className="button-icon">{showLoader && preset === mode.value ? <InlineLoader /> : <Icon name={mode.icon} />}</span>
               <span>{mode.label}</span>
             </button>
             <span id={`tip-${mode.value}`} className="mode-tooltip" role="tooltip" data-dismissed={hideTip}>

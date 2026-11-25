@@ -8,6 +8,7 @@ import TrackSearch from "./components/TrackSearch.tsx";
 import { Icon } from "./config/icons.tsx";
 import { useArtworkTheme } from "./hooks/useArtworkTheme.ts";
 import { useAudio } from "./hooks/useAudio.ts";
+import { useProcessing } from "./hooks/useProcessing.ts";
 import { useTheme } from "./hooks/useTheme.ts";
 import { useTracks } from "./hooks/useTracks.ts";
 
@@ -16,6 +17,7 @@ function App() {
   const audio = useAudio();
   const tracks = useTracks(audio.load);
   const preference = useTheme();
+  const processing = useProcessing(tracks.pending, tracks.uploadProgress);
   const theme = preference.choice === "mode" ? (tracks.baseMode === "daycore" ? "light" : "dark") : preference.choice;
 
   const artwork = useArtworkTheme(tracks.track?.metadata?.artworkUrl, theme);
@@ -29,9 +31,10 @@ function App() {
       <main className="workspace">
         <section className="source-controls" aria-labelledby="search-title">
           <h1 id="search-title">Find a track</h1>
-          <TrackSearch onSearch={tracks.search} onUpload={tracks.upload} />
-          <ModePicker preset={tracks.preset} onPreset={tracks.selectPreset} />
-          <ProcessingStatus phase={tracks.pending?.type ?? null} uploadProgress={tracks.uploadProgress} />
+          <TrackSearch onSearch={tracks.search} onUpload={tracks.upload} phase={processing.phase} inline={processing.inline} />
+          <ModePicker preset={tracks.preset} onPreset={tracks.selectPreset}
+            busy={processing.phase === "variant"} showLoader={processing.inline === "variant"} />
+          <ProcessingStatus label={processing.label} slow={processing.slow} uploadProgress={processing.uploadProgress} />
           {tracks.failure && <div className="error-row">
             <p role="alert">{tracks.failure.message}</p>
             <button className="button subtle" type="button" onClick={tracks.retry}>Retry</button>

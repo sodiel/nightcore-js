@@ -1,9 +1,12 @@
 import { useRef, useState } from "react";
 import { Icon } from "../config/icons.tsx";
+import InlineLoader from "./InlineLoader.tsx";
 
-export default function TrackSearch({ onSearch, onUpload }: {
+export default function TrackSearch({ onSearch, onUpload, phase, inline }: {
   onSearch: (query: string) => void;
   onUpload: (file: File) => void;
+  phase: "search" | "variant" | "upload" | null;
+  inline: "search" | "variant" | "upload" | null;
 }) {
   const [query, setQuery] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
@@ -14,7 +17,6 @@ export default function TrackSearch({ onSearch, onUpload }: {
       if (query.trim()) onSearch(query.trim());
     }}>
       <div className="search-field">
-        <Icon name="search" />
         <input
           type="text"
           name="query"
@@ -27,9 +29,13 @@ export default function TrackSearch({ onSearch, onUpload }: {
           onChange={(event) => setQuery(event.target.value)}
         />
       </div>
-      <button className="button primary" type="submit" disabled={!query.trim()}>Search</button>
-      <button className="button file-button" type="button" onClick={() => fileInput.current?.click()}>
-        <Icon name="file" />Choose file
+      <button className="button primary" type="submit" disabled={!query.trim()} aria-busy={phase === "search"}>
+        <span className="button-icon">{inline === "search" ? <InlineLoader /> : <Icon name="search" />}</span>
+        Search
+      </button>
+      <button className="button file-button" type="button" aria-busy={phase === "upload"} onClick={() => fileInput.current?.click()}>
+        <span className="button-icon">{inline === "upload" ? <InlineLoader /> : <Icon name="file" />}</span>
+        Choose file
       </button>
       <input ref={fileInput} type="file" hidden accept=".mp3,.wav,.m4a,.flac,.ogg,.oga,.opus"
         onChange={(event) => {

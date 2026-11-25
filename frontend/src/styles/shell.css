@@ -110,7 +110,6 @@
   color: var(--quiet);
 }
 
-.search-field svg { flex: 0 0 auto; }
 .search-field input {
   flex: 1;
   width: 0;
@@ -163,4 +162,20 @@ button:disabled { cursor: default; opacity: 0.65; }
 @media (max-width: 599px) {
   .search { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
   .file-button { grid-column: 1 / -1; justify-self: start; }
+}
+
+.button-icon, .inline-loader {
+  display: inline-grid;
+  flex: 0 0 24px;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+}
+
+.inline-loader .mtrl-loading-indicator { color: inherit; }
+
+.search .primary { padding-inline: 12px; }
+
+@media (max-width: 359px) {
+  .search .primary { gap: 4px; }
 }
