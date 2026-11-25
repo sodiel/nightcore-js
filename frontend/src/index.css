@@ -467,3 +467,48 @@ button:disabled { cursor: default; opacity: 0.65; }
 @media (min-width: 768px) and (max-width: 959px) {
   .mode-picker { align-self: start; }
 }
+
+.effects-trigger { background: var(--control); color: var(--muted); }
+.effects-trigger:hover { background: var(--hover); color: var(--ink); }
+.effects-trigger[data-selected="true"] { background: var(--selection); color: var(--on-selection); border-radius: 24px; }
+
+.effects-popover {
+  position: fixed;
+  inset: auto var(--effects-right, 24px) auto auto;
+  top: clamp(8px, var(--effects-top, 24px), max(8px, calc(100dvh - 340px)));
+  margin: 0;
+  width: min(340px, calc(100vw - 32px));
+  max-height: calc(100dvh - 16px);
+  overflow: auto;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 16px;
+}
+.effects-popover h2 { font-size: 20px; font-weight: 500; }
+.effects-group { display: grid; gap: 4px; margin-top: 12px; }
+
+.effect-choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  border-radius: 12px;
+  text-align: start;
+  padding: 8px 12px;
+  color: var(--muted);
+  background: var(--control);
+}
+
+.effect-choice svg { flex: 0 0 auto; }
+.effect-choice span { display: grid; }
+.effect-choice strong { font-size: 14px; font-weight: 600; }
+.effect-choice small { font-size: 13px; }
+.effect-choice:hover { background: var(--hover); }
+.effect-choice[aria-pressed="true"] { background: var(--selection); color: var(--on-selection); border-radius: 20px; }
+.effect-choice:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+@media (max-width: 550px) {
+  .effects-trigger span { display: none; }
+}

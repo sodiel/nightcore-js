@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { renderVariant, searchTrack, uploadTrack, type Preset, type Track, type Variant } from "../services.ts";
+import { renderVariant, searchTrack, uploadTrack, type Track, type Variant } from "../services.ts";
+
+import { isPrimaryMode, type Preset, type PrimaryMode } from "../config/modes.ts";
 
 type Job =
   | { type: "upload"; file: File; preset: Preset }
@@ -8,6 +10,9 @@ type Job =
 
 export function useTracks(loadAudio: (variant: Variant, previous?: Variant) => void) {
   const [track, setTrack] = useState<Track | null>(null);
+  const [baseMode, setBaseMode] = useState<PrimaryMode>("nightcore");
+  const desiredBase = useRef<PrimaryMode>("nightcore");
+  const loadedBase = useRef<PrimaryMode>("nightcore");
   const [preset, setPreset] = useState<Preset>("nightcore");
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const desiredPreset = useRef<Preset>("nightcore");
@@ -21,6 +26,10 @@ export function useTracks(loadAudio: (variant: Variant, previous?: Variant) => v
   function updatePreset(next: Preset) {
     desiredPreset.current = next;
     setPreset(next);
+    if (isPrimaryMode(next)) {
+      desiredBase.current = next;
+      setBaseMode(next);
+    }
   }
 
   function cancel() {
@@ -57,6 +66,7 @@ export function useTracks(loadAudio: (variant: Variant, previous?: Variant) => v
       if (controller.signal.aborted) return;
       loadAudio(result.variant, job.type === "variant" ? currentTrack.current?.variant : undefined);
       currentTrack.current = result;
+      loadedBase.current = desiredBase.current;
       setTrack(result);
     } catch (error) {
       if (controller.signal.aborted) return;
@@ -64,7 +74,11 @@ export function useTracks(loadAudio: (variant: Variant, previous?: Variant) => v
         message: error instanceof Error ? error.message : "Could not prepare this track.",
         job: job.type === "upload" ? { ...job, preset: desiredPreset.current } : job,
       });
-      if (job.type === "variant") updatePreset(job.track.variant.preset);
+      if (job.type === "variant") {
+        updatePreset(job.track.variant.preset);
+        desiredBase.current = loadedBase.current;
+        setBaseMode(loadedBase.current);
+      }
     } finally {
       if (active.current === controller) {
         active.current = null;
@@ -92,7 +106,7 @@ export function useTracks(loadAudio: (variant: Variant, previous?: Variant) => v
   }
 
   return {
-    track, preset, selectPreset, failure, pending, uploadProgress,
+    track, preset, baseMode, selectPreset, failure, pending, uploadProgress,
     search: (query: string) => void run({ type: "search", query, preset: desiredPreset.current }),
     upload: (file: File) => void run({ type: "upload", file, preset: desiredPreset.current }),
     retry: () => { if (failure) void run(failure.job); },

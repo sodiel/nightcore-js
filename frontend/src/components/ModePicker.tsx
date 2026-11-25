@@ -1,11 +1,7 @@
 import { useState } from "react";
 import { Icon } from "../config/icons.tsx";
-import type { Preset } from "../services.ts";
-
-const modes = [
-  { value: "nightcore", label: "Nightcore", icon: "moon", description: "Plays 15% faster and raises the pitch" },
-  { value: "daycore", label: "Daycore", icon: "sun", description: "Plays 15% slower and lowers the pitch" },
-] as const;
+import { primaryModes, type Preset } from "../config/modes.ts";
+import ExtraEffects from "./ExtraEffects.tsx";
 
 interface Props {
   preset: Preset;
@@ -18,7 +14,7 @@ export default function ModePicker({ preset, onPreset }: Props) {
   return (
     <div className="mode-picker">
       <div className="mode-group" role="group" aria-label="Playback mode">
-        {modes.map((mode) => (
+        {primaryModes.map((mode) => (
           <div className="mode-option" key={mode.value}
             onMouseLeave={() => setHideTip(false)} onBlur={() => setHideTip(false)}
             onKeyDown={(event) => { if (event.key === "Escape") setHideTip(true); }}>
@@ -39,9 +35,10 @@ export default function ModePicker({ preset, onPreset }: Props) {
       }}>
         <summary className="icon-button" aria-label="About playback modes"><Icon name="info" /></summary>
         <div className="help-panel">
-          {modes.map((mode) => <p key={mode.value}><strong>{mode.label}</strong><br />{mode.description}</p>)}
+          {primaryModes.map((mode) => <p key={mode.value}><strong>{mode.label}</strong><br />{mode.description}</p>)}
         </div>
       </details>
+      <ExtraEffects preset={preset} onPreset={onPreset} />
     </div>
   );
 }

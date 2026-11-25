@@ -45,6 +45,18 @@ test("renders originals and private uploads through their normal API routes", as
   assert.deepEqual(await pair[1]!.json(), first);
   const nightcore = join(storage, "library", first.id, "nightcore-1.mp3");
   assert.ok(Math.abs((await probeAudio(nightcore)).duration - 3 / 1.15) < 0.1);
+  async function frequency(path: string) {
+    const pcm = join(storage, "frequency.pcm");
+    await run("ffmpeg", ["-v", "error", "-y", "-i", path, "-ss", "0.2", "-t", "0.5",
+      "-ac", "1", "-ar", "44100", "-f", "s16le", pcm]);
+    const samples = await readFile(pcm);
+    let crossings = 0;
+    for (let offset = 2; offset < samples.length; offset += 2) {
+      if (samples.readInt16LE(offset - 2) <= 0 && samples.readInt16LE(offset) > 0) crossings++;
+    }
+    return crossings * 88200 / samples.length;
+  }
+  assert.ok(Math.abs(await frequency(nightcore) - 460) < 4);
   const original = await request("/process", { trackQuery: query }).then((response) => response.json());
   assert.equal(original.cached, true);
   assert.ok(original.nightcoreUrl.endsWith("nightcore-1.mp3"));
@@ -74,6 +86,7 @@ test("renders originals and private uploads through their normal API routes", as
 
   const duration = await probeAudio(join(storage, "library", track.id, "daycore-1.mp3"));
   assert.ok(Math.abs(duration.duration - 3 / 0.85) < 0.1);
+  assert.ok(Math.abs(await frequency(join(storage, "library", track.id, "daycore-1.mp3")) - 340) < 4);
 
   const media = await fetch(base + track.variant.mediaUrl, { headers: { ...headers, Range: "bytes=0-1023" } });
   assert.equal(media.status, 206);
@@ -86,6 +99,22 @@ test("renders originals and private uploads through their normal API routes", as
   const newVariant = await request(`/api/tracks/${track.id}/variants`, { preset: "nightcore" }, headers);
   assert.equal(newVariant.status, 200);
   assert.equal((await newVariant.json()).tempoFactor, 1.15);
+  for (const [preset, factor, tail] of [
+    ["sped-up", 1.25, 0], ["slowed-reverb", 0.85, 0.137], ["bass-boost", 1, 0], ["8d-audio", 1, 0],
+  ] as const) {
+    const response = await request(`/api/tracks/${track.id}/variants`, { preset }, headers);
+    assert.equal(response.status, 200, await response.clone().text());
+    const variant = await response.json();
+    assert.equal(variant.tempoFactor, factor);
+    const output = join(storage, "library", track.id, `${preset}-1.mp3`);
+    assert.ok(Math.abs((await probeAudio(output)).duration - (3 / factor + tail)) < 0.1);
+    if (preset === "sped-up") assert.ok(Math.abs(await frequency(output) - 400) < 4);
+    if (preset === "8d-audio") {
+      const { stdout } = await run("ffprobe", ["-v", "error", "-select_streams", "a:0", "-show_entries",
+        "stream=channels", "-of", "csv=p=0", output]);
+      assert.equal(stdout.trim(), "2");
+    }
+  }
   const sourcePath = join(storage, "library", track.id, "source.json");
   const source = JSON.parse(await readFile(sourcePath, "utf8"));
   source.upload.expiresAt = Date.now() - 1;

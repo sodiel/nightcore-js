@@ -1,4 +1,4 @@
-export type Preset = "nightcore" | "daycore";
+import type { Preset } from "./config/modes.ts";
 
 export interface TrackMetadata {
   artist: string;

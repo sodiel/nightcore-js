@@ -15,7 +15,7 @@ function App() {
   const audio = useAudio();
   const tracks = useTracks(audio.load);
   const preference = useTheme();
-  const theme = preference.choice === "mode" ? (tracks.preset === "daycore" ? "light" : "dark") : preference.choice;
+  const theme = preference.choice === "mode" ? (tracks.baseMode === "daycore" ? "light" : "dark") : preference.choice;
 
   return (
     <div className="app" data-theme={theme}>
