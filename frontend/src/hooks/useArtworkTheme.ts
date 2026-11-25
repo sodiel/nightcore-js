@@ -18,12 +18,15 @@ export function useArtworkTheme(artworkUrl: string | undefined, theme: "light" |
   const style = useMemo(() => {
     if (seed === undefined) return undefined;
     const dark = theme === "dark";
-    const scheme = new SchemeTonalSpot(Hct.fromInt(seed), dark, 0);
+    const source = Hct.fromInt(seed);
+    const scheme = new SchemeTonalSpot(source, dark, 0);
+    const surface = (tone: number, chroma: number) =>
+      Hct.from(source.hue, Math.min(source.chroma, chroma), tone).toInt();
     const roles = {
-      "--canvas": scheme.surface,
-      "--surface": scheme.surfaceContainerLow,
-      "--control": scheme.surfaceContainerHigh,
-      "--hover": scheme.surfaceContainerHighest,
+      "--canvas": surface(dark ? 9 : 97, 18),
+      "--surface": surface(dark ? 14 : 94, 22),
+      "--control": surface(dark ? 20 : 90, 24),
+      "--hover": surface(dark ? 25 : 86, 26),
       "--line": scheme.outlineVariant,
       "--ink": scheme.onSurface,
       "--muted": scheme.onSurfaceVariant,
@@ -38,7 +41,7 @@ export function useArtworkTheme(artworkUrl: string | undefined, theme: "light" |
   }, [seed, theme]);
 
   function onArtworkLoad(image: HTMLImageElement) {
-    if (!artworkUrl || !image.isConnected || image.getAttribute("src") !== artworkUrl || seed !== undefined) return;
+    if (!artworkUrl || !image.isConnected || seed !== undefined) return;
     try {
       const color = artworkColor(image);
       if (color !== undefined) setArtwork({ url: artworkUrl, seed: color });

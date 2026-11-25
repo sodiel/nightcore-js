@@ -1,9 +1,10 @@
 import express, { type Express, type ErrorRequestHandler, type Request, type Response } from "express";
 import cors from "cors";
+import { open } from "node:fs/promises";
 import { join } from "node:path";
 import { config } from "./config.ts";
 import { ApiError } from "./errors.ts";
-import { acquireTrack, getSource, mediaFile, prepareOriginal, prepareVariant, trackResponse, variantFilename } from "./library.ts";
+import { acquireTrack, getArtwork, getSource, mediaFile, prepareOriginal, prepareVariant, trackResponse, variantFilename } from "./library.ts";
 import { isLocalRequest } from "./local-auth.ts";
 import { getLyrics } from "./lyrics.ts";
 import { isPreset } from "./presets.ts";
@@ -56,6 +57,21 @@ export function createApp(): Express {
   app.get("/api/tracks/:id/lyrics", async (req, res) => {
     const source = await requestedSource(req, res, req.params.id);
     res.json(await getLyrics(source));
+  });
+
+  app.get("/api/tracks/:id/artwork", async (req, res) => {
+    const source = await requestedSource(req, res, req.params.id);
+    const path = await getArtwork(source);
+    if (!path) return res.sendStatus(404);
+    const file = await open(path, "r");
+    const header = Buffer.alloc(12);
+    try { await file.read(header); } finally { await file.close(); }
+    const mime = header.subarray(0, 3).equals(Buffer.from([255, 216, 255])) ? "image/jpeg"
+      : header.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) ? "image/png"
+      : header.toString("ascii", 0, 4) === "RIFF" && header.toString("ascii", 8, 12) === "WEBP" ? "image/webp"
+      : undefined;
+    if (!mime) return res.sendStatus(404);
+    res.type(mime).sendFile(path, { cacheControl: !source.upload, headers: { "X-Content-Type-Options": "nosniff" } });
   });
 
   app.get("/api/media/:id/:filename", async (req, res) => {

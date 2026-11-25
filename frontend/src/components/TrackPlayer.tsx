@@ -22,7 +22,7 @@ export default function TrackPlayer({ track, duration, currentTime, playing, onS
 
   return (
     <section className="track-player" aria-label="Now playing">
-      <TrackDetails key={track.metadata?.artworkUrl} artworkUrl={track.metadata?.artworkUrl} onArtworkLoad={onArtworkLoad} />
+      <TrackDetails key={track.id} trackId={track.id} artworkUrl={track.metadata?.artworkUrl} onArtworkLoad={onArtworkLoad} />
       <div className="track-controls">
         <div className="track-heading">
           <h2>{track.metadata?.title || "Untitled track"}</h2>

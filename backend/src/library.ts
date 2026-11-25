@@ -172,6 +172,13 @@ async function saveCover(source: Source) {
   }
 }
 
+export function getArtwork(source: Source) {
+  return once(`cover:${source.id}`, async () => {
+    const stored = join(sourceDir(source.id), "artwork");
+    return await readable(stored) ? stored : saveCover(source);
+  });
+}
+
 export function variantFilename(preset: EffectPreset) {
   return `${preset}-${presets[preset].version}.mp3`;
 }
@@ -184,10 +191,7 @@ async function renderFile(source: Source, filename: string, preset?: EffectPrese
     const temporary = join(dir, `.${filename}.${randomUUID()}.tmp`);
     try {
       const input = join(dir, originalFilename);
-      const cover = preset ? await once(`cover:${source.id}`, async () => {
-        const stored = join(dir, "artwork");
-        return await readable(stored) ? stored : saveCover(source);
-      }) : undefined;
+      const cover = preset ? await getArtwork(source) : undefined;
       try {
         await renderAudio(input, temporary, preset, cover);
       } catch (error) {
