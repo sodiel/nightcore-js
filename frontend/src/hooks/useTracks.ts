@@ -2,7 +2,7 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { renderVariant, searchTrack, uploadTrack, type Track, type TrackLookup, type Variant } from "../services.ts";
 
 import { readSharedTrack } from "../utils/sharing.ts";
-import { isPrimaryMode, type Preset, type PrimaryMode } from "../config/modes.ts";
+import { type Preset } from "../config/modes.ts";
 
 type Job =
   | { type: "upload"; file: File; preset: Preset }
@@ -12,9 +12,6 @@ type Job =
 export function useTracks(loadAudio: (variant: Variant, previous?: Variant) => void) {
   const [shared] = useState(() => readSharedTrack(window.location.search));
   const [track, setTrack] = useState<Track | null>(null);
-  const [baseMode, setBaseMode] = useState<PrimaryMode>("nightcore");
-  const desiredBase = useRef<PrimaryMode>("nightcore");
-  const loadedBase = useRef<PrimaryMode>("nightcore");
   const [preset, setPreset] = useState<Preset>("nightcore");
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const desiredPreset = useRef<Preset>("nightcore");
@@ -35,10 +32,6 @@ export function useTracks(loadAudio: (variant: Variant, previous?: Variant) => v
   function updatePreset(next: Preset) {
     desiredPreset.current = next;
     setPreset(next);
-    if (isPrimaryMode(next)) {
-      desiredBase.current = next;
-      setBaseMode(next);
-    }
   }
 
   function cancel() {
@@ -75,7 +68,6 @@ export function useTracks(loadAudio: (variant: Variant, previous?: Variant) => v
       if (controller.signal.aborted) return;
       loadAudio(result.variant, job.type === "variant" ? currentTrack.current?.variant : undefined);
       currentTrack.current = result;
-      loadedBase.current = desiredBase.current;
       setTrack(result);
     } catch (error) {
       if (controller.signal.aborted) return;
@@ -85,8 +77,6 @@ export function useTracks(loadAudio: (variant: Variant, previous?: Variant) => v
       });
       if (job.type === "variant") {
         updatePreset(job.track.variant.preset);
-        desiredBase.current = loadedBase.current;
-        setBaseMode(loadedBase.current);
       }
     } finally {
       if (active.current?.controller === controller) {
@@ -117,7 +107,7 @@ export function useTracks(loadAudio: (variant: Variant, previous?: Variant) => v
   }
 
   return {
-    track, preset, baseMode, selectPreset, failure, pending, uploadProgress,
+    track, preset, selectPreset, failure, pending, uploadProgress,
     sharedQuery: shared && "query" in shared.lookup ? shared.lookup.query : "",
     search: (query: string) => void run({ type: "search", lookup: { query }, preset: desiredPreset.current }),
     upload: (file: File) => void run({ type: "upload", file, preset: desiredPreset.current }),

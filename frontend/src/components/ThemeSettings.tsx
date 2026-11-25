@@ -3,7 +3,7 @@ import { Icon } from "../config/icons.tsx";
 import { themeChoices, type ThemeChoice } from "../hooks/useTheme.ts";
 import Overlay from "./Overlay.tsx";
 
-const labels = { mode: "Follow mode", light: "Light", dark: "Dark" };
+const labels = { system: "System", light: "Light", dark: "Dark" };
 
 export default function ThemeSettings({ choice, onChange }: { choice: ThemeChoice; onChange: (choice: ThemeChoice) => void }) {
   const dialog = useRef<HTMLDialogElement>(null);

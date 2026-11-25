@@ -16,9 +16,4 @@ export const modes = [
   ...extraModes,
 ] as const;
 
-export type PrimaryMode = typeof primaryModes[number]["value"];
 export type Preset = typeof modes[number]["value"];
-
-export function isPrimaryMode(preset: Preset): preset is PrimaryMode {
-  return primaryModes.some((mode) => mode.value === preset);
-}

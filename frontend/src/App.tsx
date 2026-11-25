@@ -19,7 +19,7 @@ function App() {
   const tracks = useTracks(audio.load);
   const preference = useTheme();
   const processing = useProcessing(tracks.pending, tracks.uploadProgress);
-  const theme = preference.choice === "mode" ? (tracks.baseMode === "daycore" ? "light" : "dark") : preference.choice;
+  const { theme } = preference;
 
   const artwork = useArtworkTheme(tracks.track?.metadata?.artworkUrl, theme);
 

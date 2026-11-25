@@ -1,6 +1,6 @@
 # nightcore-js
 
-Search YouTube by track name or paste a video link. Nightcore raises the tempo and pitch. Daycore lowers both. Open Lyrics while listening to follow the words or jump to a timed line. Original plays the downloaded or uploaded audio as-is. The playback mode group also includes Sped up, Slowed + reverb, Bass boost, and 8D audio. Settings lets you follow the mode's theme or keep a light or dark theme.
+Search YouTube by track name or paste a video link. Nightcore raises the tempo and pitch. Daycore lowers both. Open Lyrics while listening to follow the words or jump to a timed line. Original plays the downloaded or uploaded audio as-is. The playback mode group also includes Sped up, Slowed + reverb, Bass boost, and 8D audio. Settings lets you follow the system theme or keep a light or dark theme.
 
 ## Download and share
 
