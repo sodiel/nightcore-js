@@ -1,20 +1,24 @@
 import ModePicker from "./components/ModePicker.tsx";
 import ProcessingStatus from "./components/ProcessingStatus.tsx";
+import ThemeSettings from "./components/ThemeSettings.tsx";
 import TrackPlayer from "./components/TrackPlayer.tsx";
 import TrackSearch from "./components/TrackSearch.tsx";
 import { Icon } from "./config/icons.tsx";
 import { useAudio } from "./hooks/useAudio.ts";
+import { useTheme } from "./hooks/useTheme.ts";
 import { useTracks } from "./hooks/useTracks.ts";
 
 function App() {
   const audio = useAudio();
   const tracks = useTracks(audio.load);
-  const theme = tracks.preset === "daycore" ? "light" : "dark";
+  const preference = useTheme();
+  const theme = preference.choice === "mode" ? (tracks.preset === "daycore" ? "light" : "dark") : preference.choice;
 
   return (
     <div className="app" data-theme={theme}>
       <header className="app-header">
         <div className="wordmark"><span className="brand-mark"><Icon name="brand" /></span>nightcore-js</div>
+        <ThemeSettings choice={preference.choice} onChange={preference.choose} />
       </header>
       <main className="workspace">
         <section className="source-controls" aria-labelledby="search-title">

@@ -370,3 +370,43 @@ button:disabled { cursor: default; opacity: 0.65; }
 @media (prefers-reduced-motion: reduce) {
   .app *, .app *::before, .app *::after { animation: none !important; transition: none !important; }
 }
+
+.settings-button { background: transparent; color: var(--muted); }
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  max-height: min(70svh, 560px);
+  width: min(calc(100% - 32px), 360px);
+  margin: auto;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.overlay::backdrop { background: rgb(13 14 17 / 40%); }
+.overlay-content { padding: 16px 20px 20px; }
+.overlay-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.overlay-heading h2 { font-size: 24px; font-weight: 500; }
+
+.theme-fieldset { margin-top: 12px; }
+.theme-fieldset legend { color: var(--muted); font-size: 14px; margin-bottom: 8px; }
+.theme-choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding-inline: 12px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.theme-choice:hover { background: var(--control); }
+.theme-choice input { accent-color: var(--accent); }
+
+@media (max-width: 767px) {
+  .overlay { inset-block-start: auto; width: 100%; max-width: none; margin: 0; border-radius: 24px 24px 0 0; }
+  .overlay-content { padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+}
