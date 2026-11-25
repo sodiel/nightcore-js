@@ -17,7 +17,7 @@ COPY backend/src ./backend/src
 FROM ${NODE_IMAGE} AS runtime
 ARG TARGETARCH
 ARG FFMPEG_VERSION=7:7.1.5-0+deb13u1
-ARG YTDLP_VERSION=2026.10.26
+ARG YTDLP_VERSION=2026.11.23
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends ca-certificates curl "ffmpeg=${FFMPEG_VERSION}"; \
